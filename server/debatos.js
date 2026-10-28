@@ -3,14 +3,14 @@
 //  POST /api/...     — акаунти, дебати з людьми «3 дні» і чат-рулетка
 import { DurableObject } from "cloudflare:workers";
 
-const VERSION = "v4 (topics)";
+const VERSION = "v5 (6 langs)";
 const MODELS = [
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/google/gemma-3-12b-it",
   "@cf/meta/llama-3.1-8b-instruct",
 ];
 const FAST_MODEL = "@cf/meta/llama-3.1-8b-instruct";
-const LANGS = { uk: "Ukrainian", de: "German", en: "English", es: "Spanish" };
+const LANGS = { en: "English", uk: "Ukrainian", de: "German", es: "Spanish", fr: "French", ru: "Russian" };
 const ROUNDS = {
   1: "OPENING: present your 2-3 strongest arguments.",
   2: "REBUTTAL: answer the opponent's latest points directly - quote or name them and show where they are weak. Then add one new argument.",
@@ -34,7 +34,7 @@ export default {
     if (request.method !== "POST") return text(`Debates AI server works ✅ (judges v2, ${VERSION})`);
     let b;
     try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
-    const lang = LANGS[b.lang] ? b.lang : "uk";
+    const lang = LANGS[b.lang] ? b.lang : "en";
     const topic = String(b.topic || "").slice(0, 300);
     const history = Array.isArray(b.history) ? b.history.slice(-8) : [];
     if (b.mode === "judge") {
@@ -188,10 +188,11 @@ const CONTACT_RE = [
   /(\+|00)\s?\d[\d\s().-]{7,}\d/,              // телефони
   /[\w.+-]+@[\w-]+\.[\w.]+/,                   // e-mail
   /(https?:\/\/|www\.)\S+/i,                   // посилання
-  /\b[\w-]+\.(com|net|org|ru|ua|de|es|io|me|app|gg|link)\b/i,
+  /\b[\w-]+\.(com|net|org|ru|ua|de|es|fr|io|me|app|gg|link)\b/i,
   /(^|\s)@[A-Za-z0-9_.]{3,}/,                  // @нікнейми
   /\b(telegram|tg|insta|instagram|snap|snapchat|whatsapp|viber|discord|tiktok|signal|onlyfans)\b/i,
-  /(телеграм|телеграмм|інст|инст|інстаграм|инстаграм|вайбер|ватсап|вотсап|дискорд|тікток|тикток|снеп|снэп)/i,
+  // назви месенджерів кирилицею (але не «інститут», «инструмент»…)
+  /(?<!\p{L})(телеграмм?\p{L}*|інст[аиуіео]?|инст[аиуеоы]?|інстаграм\p{L}*|инстаграм\p{L}*|вайбер\p{L}*|ватсап\p{L}*|вотсап\p{L}*|дискорд\p{L}*|тікток\p{L}*|тикток\p{L}*|снеп\p{L}*|снэп\p{L}*|вконтакт\p{L}*)(?!\p{L})/iu,
 ];
 
 async function moderate(env, textIn) {
@@ -311,7 +312,7 @@ export class Hub extends DurableObject {
     if (!mod.allowed) throw fail("nick_moderation", 400);
     const id = crypto.randomUUID();
     const token = crypto.randomUUID() + crypto.randomUUID();
-    const lang = LANGS[b.lang] ? b.lang : "uk";
+    const lang = LANGS[b.lang] ? b.lang : "en";
     this.run(`INSERT INTO users (id, token, nick, lang, created) VALUES (?, ?, ?, ?, ?)`, id, token, nick, lang, Date.now());
     return { userId: id, token, nick };
   }
