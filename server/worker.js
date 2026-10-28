@@ -1,4 +1,4 @@
-// Сервер AI для застосунку «Дебати» (Cloudflare Worker, безкоштовно ).
+// Сервер AI для застосунку «Дебати» (Cloudflare Worker, безкоштовно  ).
 const MODELS = [
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/google/gemma-3-12b-it",
