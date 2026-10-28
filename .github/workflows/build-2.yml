@@ -62,7 +62,7 @@ jobs:
       - name: Назва застосунку і доступ до інтернету
         run: |
           M=android/app/src/main/AndroidManifest.xml
-          sed -i 's/android:label="[^"]*"/android:label="Дебати"/' $M
+          sed -i 's/android:label="[^"]*"/android:label="Debatos"/' $M
           grep -q 'android.permission.INTERNET' $M || \
             sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' $M
 
