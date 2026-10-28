@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 
 /// Адреса AI-сервера. Поки порожня — працює демо-режим.
 /// Коли налаштуємо сервер, сюди вставимо його адресу.
-const String aiServerUrl = '';
+const String aiServerUrl = 'https://debatos-ai.ahmadsolomko.workers.dev';
 
 const int debateRounds = 3;
 
