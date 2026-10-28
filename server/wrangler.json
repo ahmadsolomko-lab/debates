@@ -2,5 +2,9 @@
   "name": "debatos-ai",
   "main": "debatos.js",
   "compatibility_date": "2026-10-01",
-  "ai": { "binding": "AI" }
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [{ "name": "HUB", "class_name": "Hub" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Hub"] }]
 }
