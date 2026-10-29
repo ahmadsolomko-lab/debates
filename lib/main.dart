@@ -1,4 +1,4 @@
-// Debatos — версія 0.8.3. Весь застосунок в одному файлі.
+// Debatos — версія 0.8.4. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -78,18 +78,25 @@ class OlympusBanner extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset('hero.jpg', fit: BoxFit.cover),
-            Align(
-              alignment: const Alignment(0, -0.78),
-              child: Text(
-                'Debatos',
-                style: classic(
-                  fontSize: 46,
-                  color: const Color(0xFF1F1A15),
-                  letterSpacing: 2,
-                ).copyWith(
-                  shadows: const [
-                    Shadow(color: Color(0x99FFFFFF), blurRadius: 12),
-                  ],
+            // розмір напису залежить від ширини, щоб не налазив на голови
+            LayoutBuilder(
+              builder: (context, box) => Padding(
+                padding: EdgeInsets.only(top: box.maxHeight * 0.035),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Text(
+                    'Debatos',
+                    style: classic(
+                      fontSize: box.maxWidth * 0.095,
+                      color: const Color(0xFF1F1A15),
+                      letterSpacing: 2,
+                      height: 1.0,
+                    ).copyWith(
+                      shadows: const [
+                        Shadow(color: Color(0x99FFFFFF), blurRadius: 12),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
