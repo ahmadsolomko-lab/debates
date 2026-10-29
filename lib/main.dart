@@ -1,4 +1,4 @@
-// Debatos — версія 0.8. Весь застосунок в одному файлі.
+// Debatos — версія 0.8.3. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -60,130 +60,306 @@ TextStyle classic({
       height: height,
     );
 
-/// Шапка головного екрана: небо, гора Олімп у хмарах, храм на вершині.
+/// Шапка головного екрана: філософи сперечаються біля Акрополя + назва.
 class OlympusBanner extends StatelessWidget {
   const OlympusBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 150,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: AppColors.gold.withAlpha(150)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: CustomPaint(painter: _OlympusPainter(), size: Size.infinite),
+      child: AspectRatio(
+        aspectRatio: 3 / 2,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset('hero.jpg', fit: BoxFit.cover),
+            Align(
+              alignment: const Alignment(0, -0.78),
+              child: Text(
+                'Debatos',
+                style: classic(
+                  fontSize: 46,
+                  color: const Color(0xFF1F1A15),
+                  letterSpacing: 2,
+                ).copyWith(
+                  shadows: const [
+                    Shadow(color: Color(0x99FFFFFF), blurRadius: 12),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _OlympusPainter extends CustomPainter {
+/// Анімація: амфора ллє воду в кілік (на потім — для заставки).
+class AmphoraAnimation extends StatefulWidget {
+  const AmphoraAnimation({super.key});
+
+  @override
+  State<AmphoraAnimation> createState() => _AmphoraAnimationState();
+}
+
+class _AmphoraAnimationState extends State<AmphoraAnimation>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // якщо в телефоні вимкнені анімації — показуємо нерухомий кадр
+    if (MediaQuery.of(context).disableAnimations) {
+      _c.stop();
+      _c.value = 0.3;
+    } else if (!_c.isAnimating) {
+      _c.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 170,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.gold.withAlpha(150)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: RepaintBoundary(
+        child: CustomPaint(painter: _JugPainter(_c), size: Size.infinite),
+      ),
+    );
+  }
+}
+
+class _JugPainter extends CustomPainter {
+  final Animation<double> anim;
+
+  _JugPainter(this.anim) : super(repaint: anim);
+
+  static const double _angle = -62 * pi / 180;
+  static const Color _clay = Color(0xFFC8673A);
+  static const Color _clayDark = Color(0xFFA9532C);
+  static const Color _glaze = Color(0xFF2B1D16);
+  static const Color _water = Color(0xFF6FA8DC);
+
+  static List<Offset> _cubic(Offset p0, Offset p1, Offset p2, Offset p3,
+      [int n = 24]) {
+    return [
+      for (var i = 0; i <= n; i++)
+        () {
+          final s = i / n, m = 1 - s;
+          return p0 * (m * m * m) +
+              p1 * (3 * m * m * s) +
+              p2 * (3 * m * s * s) +
+              p3 * (s * s * s);
+        }(),
+    ];
+  }
+
+  /// Права половина силуету амфори (одиниця — висота шапки), зверху вниз.
+  static final List<Offset> _right = [
+    const Offset(0.075, -0.31),
+    const Offset(0.065, -0.25),
+    ..._cubic(const Offset(0.065, -0.25), const Offset(0.07, -0.17),
+        const Offset(0.2, -0.15), const Offset(0.2, -0.03)),
+    ..._cubic(const Offset(0.2, -0.03), const Offset(0.2, 0.12),
+        const Offset(0.09, 0.2), const Offset(0.06, 0.27)),
+    const Offset(0.08, 0.31),
+  ];
+
+  static double _xAt(double y) {
+    for (var i = 0; i < _right.length - 1; i++) {
+      final a = _right[i], b = _right[i + 1];
+      if ((a.dy - y) * (b.dy - y) <= 0 && a.dy != b.dy) {
+        return a.dx + (b.dx - a.dx) * (y - a.dy) / (b.dy - a.dy);
+      }
+    }
+    return 0;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
+    final W = size.width, H = size.height;
+    final u = W / 345;
+    final t = anim.value;
     final rect = Offset.zero & size;
-    // небо
+
+    // тло і мармуровий стіл
     canvas.drawRect(
       rect,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFAFCBE3), Color(0xFFE6EEF3), Color(0xFFF7F4EE)],
-          stops: [0, 0.6, 1],
+          colors: [Color(0xFFDCEAF4), Color(0xFFF7F1E6)],
         ).createShader(rect),
     );
-    // сонячне сяйво
-    final sun = Offset(w * 0.82, h * 0.26);
-    canvas.drawCircle(
-      sun,
-      h * 0.42,
-      Paint()
-        ..shader = RadialGradient(colors: [
-          const Color(0xFFF6E3A6).withAlpha(220),
-          const Color(0xFFF6E3A6).withAlpha(0),
-        ]).createShader(Rect.fromCircle(center: sun, radius: h * 0.42)),
-    );
-    canvas.drawCircle(sun, h * 0.09, Paint()..color = const Color(0xFFF3D27A));
-    // дальні гори
-    final back = Path()..moveTo(0, h * 0.78);
-    back
-      ..lineTo(w * 0.12, h * 0.55)
-      ..lineTo(w * 0.22, h * 0.66)
-      ..lineTo(w * 0.36, h * 0.42)
-      ..lineTo(w * 0.5, h * 0.62)
-      ..lineTo(w * 0.7, h * 0.47)
-      ..lineTo(w * 0.86, h * 0.64)
-      ..lineTo(w, h * 0.52)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(back, Paint()..color = const Color(0xFFB7C6D6));
-    // Олімп
-    final peak = Offset(w * 0.5, h * 0.2);
-    final front = Path()
-      ..moveTo(w * 0.12, h)
-      ..lineTo(w * 0.36, h * 0.48)
-      ..lineTo(w * 0.42, h * 0.38)
-      ..lineTo(peak.dx, peak.dy)
-      ..lineTo(w * 0.58, h * 0.34)
-      ..lineTo(w * 0.64, h * 0.44)
-      ..lineTo(w * 0.9, h)
-      ..close();
-    canvas.drawPath(front, Paint()..color = const Color(0xFF8DA2B8));
-    // сніг на вершині
-    final snow = Path()
-      ..moveTo(w * 0.42, h * 0.38)
-      ..lineTo(peak.dx, peak.dy)
-      ..lineTo(w * 0.58, h * 0.34)
-      ..lineTo(w * 0.555, h * 0.4)
-      ..lineTo(w * 0.52, h * 0.36)
-      ..lineTo(w * 0.49, h * 0.43)
-      ..lineTo(w * 0.46, h * 0.37)
-      ..close();
-    canvas.drawPath(snow, Paint()..color = Colors.white);
-    // храм на вершині
-    final templeW = w * 0.075, templeH = h * 0.08;
-    final base = Offset(peak.dx - templeW / 2, peak.dy - templeH * 0.8);
-    final gold = Paint()..color = AppColors.gold;
-    final roof = Path()
-      ..moveTo(base.dx - templeW * 0.1, base.dy + templeH * 0.3)
-      ..lineTo(peak.dx, base.dy - templeH * 0.15)
-      ..lineTo(base.dx + templeW * 1.1, base.dy + templeH * 0.3)
-      ..close();
-    canvas.drawPath(roof, gold);
-    for (var i = 0; i < 4; i++) {
-      final x = base.dx + templeW * (0.05 + i * 0.3);
-      canvas.drawRect(
-          Rect.fromLTWH(x, base.dy + templeH * 0.32, templeW * 0.1,
-              templeH * 0.6),
-          gold);
-    }
     canvas.drawRect(
-        Rect.fromLTWH(base.dx - templeW * 0.05, base.dy + templeH * 0.9,
-            templeW * 1.1, templeH * 0.12),
-        gold);
-    // хмари біля підніжжя
-    final cloud = Paint()..color = Colors.white.withAlpha(235);
-    void puff(double cx, double cy, double r) {
-      canvas.drawOval(
-          Rect.fromCenter(
-              center: Offset(cx, cy), width: r * 3.2, height: r * 1.3),
-          cloud);
-      canvas.drawCircle(Offset(cx - r * 0.5, cy - r * 0.35), r * 0.6, cloud);
-      canvas.drawCircle(Offset(cx + r * 0.4, cy - r * 0.45), r * 0.75, cloud);
+        Rect.fromLTRB(0, H * 0.86, W, H), Paint()..color = const Color(0xFFE4D6BC));
+    canvas.drawLine(Offset(0, H * 0.86), Offset(W, H * 0.86),
+        Paint()
+          ..color = const Color(0xFFC9A961)
+          ..strokeWidth = 2 * u);
+
+    // амфора (нахилена)
+    final ca = cos(-_angle), sa = sin(-_angle);
+    final center = Offset(0.27 * W, 0.44 * H);
+    Offset tr(Offset p) =>
+        center + Offset(p.dx * ca - p.dy * sa, p.dx * sa + p.dy * ca) * H;
+    final outline = [
+      ..._right,
+      const Offset(-0.08, 0.31),
+      ..._right.reversed.skip(1).map((p) => Offset(-p.dx, p.dy)),
+    ];
+    canvas.drawPath(
+        Path()..addPolygon(outline.map(tr).toList(), true), Paint()..color = _clay);
+    void band(double y1, double y2) {
+      final side = [
+        for (var i = 0; i <= 10; i++)
+          Offset(_xAt(y1 + (y2 - y1) * i / 10), y1 + (y2 - y1) * i / 10),
+      ];
+      final poly = [...side, ...side.reversed.map((p) => Offset(-p.dx, p.dy))];
+      canvas.drawPath(
+          Path()..addPolygon(poly.map(tr).toList(), true), Paint()..color = _glaze);
     }
 
-    puff(w * 0.18, h * 0.86, h * 0.13);
-    puff(w * 0.47, h * 0.9, h * 0.15);
-    puff(w * 0.78, h * 0.84, h * 0.12);
-    puff(w * 0.33, h * 0.62, h * 0.08);
-    puff(w * 0.66, h * 0.58, h * 0.07);
+    band(-0.13, -0.09);
+    band(0.0, 0.1);
+    band(0.2, 0.24);
+    final dot = Paint()..color = _clay;
+    for (var i = -4; i <= 4; i++) {
+      canvas.drawCircle(tr(Offset(i * 0.035, 0.05)), 2.5 * u, dot);
+    }
+    final handle = Paint()
+      ..color = _clayDark
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4 * u
+      ..strokeCap = StrokeCap.round;
+    for (final s in const [1.0, -1.0]) {
+      final pts = _cubic(Offset(s * 0.07, -0.22), Offset(s * 0.2, -0.26),
+          Offset(s * 0.24, -0.16), Offset(s * 0.17, -0.11), 16);
+      canvas.drawPath(Path()..addPolygon(pts.map(tr).toList(), false), handle);
+    }
+    final shine = _cubic(const Offset(-0.14, -0.08), const Offset(-0.16, 0.0),
+        const Offset(-0.13, 0.1), const Offset(-0.09, 0.16), 16);
+    canvas.drawPath(
+        Path()..addPolygon(shine.map(tr).toList(), false),
+        Paint()
+          ..color = const Color(0x6EFFE6C8)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3 * u
+          ..strokeCap = StrokeCap.round);
+    canvas.drawLine(tr(const Offset(-0.075, -0.31)), tr(const Offset(0.075, -0.31)),
+        Paint()
+          ..color = const Color(0xFF8E4424)
+          ..strokeWidth = 3 * u);
+    final spout = tr(const Offset(0.075, -0.31));
+
+    // кілік (чаша)
+    final bx = 0.74 * W, by = 0.66 * H, bw = 0.30 * W, bh = 0.10 * H;
+    final land = Offset(bx - bw * 0.12, by - bh * 0.05);
+
+    // струмінь води
+    final p0 = spout, p2 = land;
+    final p1 = Offset(p0.dx + (p2.dx - p0.dx) * 0.75, p0.dy - H * 0.02);
+    Offset q(double s) =>
+        p0 * ((1 - s) * (1 - s)) + p1 * (2 * (1 - s) * s) + p2 * (s * s);
+    final l = <Offset>[], r = <Offset>[];
+    for (var i = 0; i <= 40; i++) {
+      final s = i / 40;
+      final a = q(s), b = q(min(1.0, s + 0.01));
+      final d = b - a;
+      final len = d.distance == 0 ? 1.0 : d.distance;
+      final n = Offset(-d.dy / len, d.dx / len) * ((3.2 - 1.6 * s) * u);
+      l.add(a + n);
+      r.add(a - n);
+    }
+    canvas.drawPath(Path()..addPolygon([...l, ...r.reversed], true),
+        Paint()..color = _water.withAlpha(215));
+    final streak = Paint()
+      ..color = Colors.white.withAlpha(190)
+      ..strokeWidth = 1.4 * u
+      ..strokeCap = StrokeCap.round;
+    for (var k = 0; k < 5; k++) {
+      final s = (k / 5 + t) % 1.0;
+      canvas.drawLine(q(s), q(min(1.0, s + 0.06)), streak);
+    }
+
+    // чаша, вода і брижі
+    canvas.drawArc(Rect.fromLTRB(bx - bw / 2, by - bh, bx + bw / 2, by + bh * 1.6),
+        0, pi, false, Paint()..color = _clay);
+    final rim = Rect.fromLTRB(bx - bw / 2, by - bh * 0.45, bx + bw / 2, by + bh * 0.45);
+    canvas.drawOval(rim, Paint()..color = _glaze);
+    final waterRect = Rect.fromLTRB(rim.left + 3 * u, rim.top + 2 * u,
+        rim.right - 3 * u, rim.bottom - 2 * u);
+    canvas.drawOval(waterRect, Paint()..color = _water);
+    canvas.save();
+    canvas.clipPath(Path()..addOval(waterRect));
+    for (var k = 0; k < 3; k++) {
+      final ph = (t + k / 3) % 1.0;
+      final rw = bw * 0.06 + ph * bw * 0.2, rh = rw * 0.28;
+      canvas.drawOval(
+          Rect.fromCenter(center: land, width: rw * 2, height: rh * 2),
+          Paint()
+            ..color = Colors.white.withAlpha((200 * (1 - ph)).round())
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = u);
+    }
+    canvas.restore();
+    canvas.drawPath(
+        Path()
+          ..addPolygon([
+            Offset(bx - 6 * u, by + bh * 1.2),
+            Offset(bx + 6 * u, by + bh * 1.2),
+            Offset(bx + 4 * u, H * 0.83),
+            Offset(bx - 4 * u, H * 0.83),
+          ], true),
+        Paint()..color = _clayDark);
+    canvas.drawOval(
+        Rect.fromLTRB(bx - bw * 0.18, H * 0.81, bx + bw * 0.18, H * 0.87),
+        Paint()..color = _glaze);
+    final ring = Paint()
+      ..color = _clayDark
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2 * u;
+    canvas.drawOval(
+        Rect.fromLTRB(bx + bw / 2 - 12 * u, by - 6 * u, bx + bw / 2 + 6 * u, by + 10 * u), ring);
+    canvas.drawOval(
+        Rect.fromLTRB(bx - bw / 2 - 6 * u, by - 6 * u, bx - bw / 2 + 12 * u, by + 10 * u), ring);
+
+    // бризки
+    for (var k = 0; k < 4; k++) {
+      final ph = (t * 1.7 + k / 4) % 1.0;
+      final a = (-60 - k * 20) * pi / 180;
+      final v = ph * 14 * u;
+      final dir = k.isOdd ? 1.0 : -1.0;
+      final p = Offset(land.dx + cos(a) * v * dir,
+          land.dy + sin(a) * v + ph * ph * 18 * u);
+      canvas.drawCircle(p, 1.6 * u * (1 - ph) + 0.4,
+          Paint()..color = _water.withAlpha((230 * (1 - ph)).round()));
+    }
   }
 
   @override
-  bool shouldRepaint(_OlympusPainter old) => false;
+  bool shouldRepaint(_JugPainter old) => false;
 }
 
 /// Грецький меандр — орнамент-розділювач.
@@ -1968,10 +2144,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          tr('appTitle'),
-          style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
-        ),
+        toolbarHeight: 44,
         actions: [
           if (Session.online)
             IconButton(
