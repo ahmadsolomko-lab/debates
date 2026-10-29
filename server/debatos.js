@@ -2,8 +2,11 @@
 //  POST /            — AI-суперник і AI-судді для дебатів з AI
 //  POST /api/...     — акаунти, дебати з людьми «3 дні» і чат-рулетка
 import { DurableObject } from "cloudflare:workers";
+import { PAGES } from "./pages.js";
 
-const VERSION = "v5.1";
+const VERSION = "v6 (store-ready)";
+// Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
+const SUPPORT_EMAIL = "";
 const MODELS = [
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/google/gemma-3-12b-it",
@@ -31,7 +34,11 @@ export default {
       const hub = env.HUB.get(env.HUB.idFromName("main"));
       return hub.fetch(request);
     }
-    if (request.method !== "POST") return text(`Debates AI server works ✅ (judges v2, ${VERSION})`);
+    if (request.method !== "POST") {
+      const page = PAGES[url.pathname.replace(/\/+$/, "")];
+      if (page) return html(page(url.searchParams.get("lang"), SUPPORT_EMAIL));
+      return text(`Debates AI server works ✅ (judges v2, ${VERSION})`);
+    }
     let b;
     try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
     const lang = LANGS[b.lang] ? b.lang : "en";
@@ -260,6 +267,9 @@ export class Hub extends DurableObject {
       `CREATE TABLE IF NOT EXISTS blocks (blocker TEXT, blocked TEXT, PRIMARY KEY (blocker, blocked))`,
       `CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, reporter TEXT,
          reported TEXT, match_id TEXT, reason TEXT, ts INTEGER)`,
+      `CREATE TABLE IF NOT EXISTS topic_tr (match_id TEXT, lang TEXT, text TEXT, PRIMARY KEY (match_id, lang))`,
+      `CREATE TABLE IF NOT EXISTS ai_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, lang TEXT,
+         topic TEXT, text TEXT, reason TEXT, ts INTEGER)`,
       `CREATE INDEX IF NOT EXISTS idx_msg_match ON messages(match_id, id)`,
       `CREATE INDEX IF NOT EXISTS idx_match_pro ON matches(pro)`,
       `CREATE INDEX IF NOT EXISTS idx_match_con ON matches(con)`,
@@ -280,7 +290,11 @@ export class Hub extends DurableObject {
     try {
       if (route === "register") return json(await this.register(b));
       const user = this.row(`SELECT * FROM users WHERE token = ?`, String(b.token || ""));
+      // скаргу на відповідь AI можна надіслати й без акаунта
+      if (route === "ai_report") return json(this.aiReport(user, b));
       if (!user) return json({ error: "auth" }, 401);
+      // видалити свої дані можна завжди, навіть із заблокованим акаунтом
+      if (route === "delete_account") return json(this.deleteAccount(user));
       if (user.banned) return json({ error: "banned" }, 403);
       if (LANGS[b.lang] && b.lang !== user.lang) {
         this.run(`UPDATE users SET lang = ? WHERE id = ?`, b.lang, user.id);
@@ -296,6 +310,7 @@ export class Hub extends DurableObject {
         case "verdict": return json(await this.verdict(user, b));
         case "report": return json(this.report(user, b));
         case "block": return json(this.block(user, b));
+        case "topic": return json(await this.checkTopic(b));
         default: return json({ error: "unknown route" }, 404);
       }
     } catch (e) {
@@ -502,8 +517,20 @@ export class Hub extends DurableObject {
                                                      : (m.ended_by === "surrender" ? "opp_surrendered" : "opp_timeout");
       else result = "judge";
     }
+    let topicTitle = m.topic_title;
+    if (String(m.topic_id).startsWith("custom-") && wantTranslate) {
+      const cached = this.row(`SELECT text FROM topic_tr WHERE match_id = ? AND lang = ?`, m.id, user.lang);
+      if (cached) topicTitle = cached.text;
+      else {
+        const t = await translate(this.env, m.topic_title, null, user.lang);
+        if (t) {
+          topicTitle = t;
+          this.run(`INSERT OR REPLACE INTO topic_tr (match_id, lang, text) VALUES (?, ?, ?)`, m.id, user.lang, t);
+        }
+      }
+    }
     return {
-      id: m.id, mode: m.mode, topicId: m.topic_id, topicTitle: m.topic_title, status: m.status,
+      id: m.id, mode: m.mode, topicId: m.topic_id, topicTitle, status: m.status,
       yourSide: mySide, opponentNick: opp ? opp.nick : "?",
       messages: out, round: Math.min(3, Math.floor(count / 2) + 1),
       yourTurn: m.status === "active" && this.turnSide(count) === mySide,
@@ -588,8 +615,46 @@ export class Hub extends DurableObject {
     this.run(`INSERT INTO reports (reporter, reported, match_id, reason, ts) VALUES (?, ?, ?, ?, ?)`,
       user.id, oppId, m.id, reason, Date.now());
     const n = this.row(`SELECT COUNT(DISTINCT reporter) AS n FROM reports WHERE reported = ?`, oppId).n;
-    if (n >= REPORTS_TO_BAN) this.run(`UPDATE users SET banned = 1 WHERE id = ?`, oppId);
+    if (n >= REPORTS_TO_BAN) this.run(`UPDATE users SET banned = 1 WHERE id = ?`, oppId); // остракізм
     return this.block(user, b);
+  }
+
+  // ---------- власна тема ----------
+  async checkTopic(b) {
+    const t = String(b.text || "").trim().replace(/\s+/g, " ");
+    if (t.length < 10) throw fail("topic_short", 400);
+    if (t.length > 150) throw fail("topic_long", 400);
+    const mod = await moderate(this.env, t);
+    return mod.allowed ? { ok: true, text: t } : { ok: false, error: "moderation", category: mod.category };
+  }
+
+  // ---------- скарга на відповідь AI ----------
+  aiReport(user, b) {
+    const t = String(b.text || "").slice(0, 2000);
+    if (!t) throw fail("empty", 400);
+    this.run(`INSERT INTO ai_reports (user_id, lang, topic, text, reason, ts) VALUES (?, ?, ?, ?, ?, ?)`,
+      user ? user.id : null, String(b.lang || "").slice(0, 5), String(b.topic || "").slice(0, 300), t,
+      String(b.reason || "other").slice(0, 40), Date.now());
+    return { ok: true };
+  }
+
+  // ---------- видалення акаунта і всіх даних ----------
+  deleteAccount(user) {
+    const id = user.id;
+    const ids = this.rows(`SELECT id FROM matches WHERE pro = ? OR con = ?`, id, id).map((r) => r.id);
+    for (const mid of ids) {
+      this.run(`DELETE FROM translations WHERE msg_id IN (SELECT id FROM messages WHERE match_id = ?)`, mid);
+      this.run(`DELETE FROM messages WHERE match_id = ?`, mid);
+      this.run(`DELETE FROM verdicts WHERE match_id = ?`, mid);
+      this.run(`DELETE FROM topic_tr WHERE match_id = ?`, mid);
+      this.run(`DELETE FROM matches WHERE id = ?`, mid);
+    }
+    this.run(`DELETE FROM queue WHERE user_id = ?`, id);
+    this.run(`DELETE FROM blocks WHERE blocker = ? OR blocked = ?`, id, id);
+    this.run(`DELETE FROM reports WHERE reporter = ? OR reported = ?`, id, id);
+    this.run(`UPDATE ai_reports SET user_id = NULL WHERE user_id = ?`, id);
+    this.run(`DELETE FROM users WHERE id = ?`, id);
+    return { ok: true };
   }
 }
 
@@ -615,6 +680,9 @@ function json(data, status = 200) {
     status,
     headers: { "content-type": "application/json; charset=utf-8" },
   });
+}
+function html(t) {
+  return new Response(t, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
 function text(t) {
   return new Response(t, { headers: { "content-type": "text/plain; charset=utf-8" } });
