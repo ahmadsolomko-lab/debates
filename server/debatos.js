@@ -3,7 +3,7 @@
 //  POST /api/...     — акаунти, дебати з людьми «3 дні» і чат-рулетка
 import { DurableObject } from "cloudflare:workers";
 
-const VERSION = "v5 (6 langs)";
+const VERSION = "v5.1";
 const MODELS = [
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/google/gemma-3-12b-it",
@@ -21,7 +21,7 @@ const ROUNDS = {
 const TURNS = 6; // 3 раунди × 2 сторони, починає сторона «ЗА»
 const TURN_MS = { live: 3 * 60 * 1000, async: 24 * 60 * 60 * 1000 };
 const LIVE_QUEUE_STALE_MS = 25 * 1000;
-const REPORTS_TO_BAN = 3;
+const REPORTS_TO_BAN = 5;
 
 export default {
   async fetch(request, env) {
