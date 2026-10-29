@@ -1,11 +1,11 @@
-// Debatos — версія 0.7. Весь застосунок в одному файлі.
+// Debatos — версія 0.8. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ===================== налаштування =====================
@@ -23,18 +23,25 @@ Future<void> main() async {
   runApp(const DebatesApp());
 }
 
-/// Палітра давньогрецької вази: чорний лак, теракота, глина, олива.
+/// Палітра Олімпу: білий мармур, егейська блакить, золото лаврів.
 class AppColors {
-  static const Color background = Color(0xFF17100B); // чорний лак
-  static const Color surface = Color(0xFF261A12); // обпалена глина
-  static const Color surfaceHigh = Color(0xFF36261A);
-  static const Color accent = Color(0xFFD9733B); // теракота
-  static const Color gold = Color(0xFFD4A64A); // лаври, бронза
-  static const Color pro = Color(0xFF9DB36A); // олива
-  static const Color con = Color(0xFFD9624A); // червона фігура
-  static const Color text = Color(0xFFF3E6D2); // слонова кістка
-  static const Color textMuted = Color(0xFFB9A58C);
+  static const Color background = Color(0xFFF7F4EE); // мармур
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceHigh = Color(0xFFECE6DA);
+  static const Color accent = Color(0xFF2E5E8C); // егейська блакить
+  static const Color onAccent = Color(0xFFFFFFFF);
+  static const Color gold = Color(0xFFB8892B); // лаври
+  static const Color goldText = Color(0xFF8C6A1F);
+  static const Color sky = Color(0xFFCFE0EE);
+  static const Color pro = Color(0xFF5B7A35); // олива
+  static const Color con = Color(0xFFB5473A); // теракота
+  static const Color text = Color(0xFF2B2620); // чорнило
+  static const Color textMuted = Color(0xFF7A6F60);
 }
+
+/// Шрифти вбудовані в застосунок (їх додає збірка).
+const String kBodyFont = 'Alegreya';
+const String kTitleFont = 'CormorantSC';
 
 /// Шрифт «як на колоні» для заголовків (є кирилиця).
 TextStyle classic({
@@ -44,8 +51,8 @@ TextStyle classic({
   double letterSpacing = 0.6,
   double? height,
 }) =>
-    GoogleFonts.getFont(
-      'Cormorant SC',
+    TextStyle(
+      fontFamily: kTitleFont,
       fontSize: fontSize,
       color: color,
       fontWeight: fontWeight,
@@ -53,12 +60,138 @@ TextStyle classic({
       height: height,
     );
 
+/// Шапка головного екрана: небо, гора Олімп у хмарах, храм на вершині.
+class OlympusBanner extends StatelessWidget {
+  const OlympusBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.gold.withAlpha(150)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: CustomPaint(painter: _OlympusPainter(), size: Size.infinite),
+    );
+  }
+}
+
+class _OlympusPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final rect = Offset.zero & size;
+    // небо
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFAFCBE3), Color(0xFFE6EEF3), Color(0xFFF7F4EE)],
+          stops: [0, 0.6, 1],
+        ).createShader(rect),
+    );
+    // сонячне сяйво
+    final sun = Offset(w * 0.82, h * 0.26);
+    canvas.drawCircle(
+      sun,
+      h * 0.42,
+      Paint()
+        ..shader = RadialGradient(colors: [
+          const Color(0xFFF6E3A6).withAlpha(220),
+          const Color(0xFFF6E3A6).withAlpha(0),
+        ]).createShader(Rect.fromCircle(center: sun, radius: h * 0.42)),
+    );
+    canvas.drawCircle(sun, h * 0.09, Paint()..color = const Color(0xFFF3D27A));
+    // дальні гори
+    final back = Path()..moveTo(0, h * 0.78);
+    back
+      ..lineTo(w * 0.12, h * 0.55)
+      ..lineTo(w * 0.22, h * 0.66)
+      ..lineTo(w * 0.36, h * 0.42)
+      ..lineTo(w * 0.5, h * 0.62)
+      ..lineTo(w * 0.7, h * 0.47)
+      ..lineTo(w * 0.86, h * 0.64)
+      ..lineTo(w, h * 0.52)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(back, Paint()..color = const Color(0xFFB7C6D6));
+    // Олімп
+    final peak = Offset(w * 0.5, h * 0.2);
+    final front = Path()
+      ..moveTo(w * 0.12, h)
+      ..lineTo(w * 0.36, h * 0.48)
+      ..lineTo(w * 0.42, h * 0.38)
+      ..lineTo(peak.dx, peak.dy)
+      ..lineTo(w * 0.58, h * 0.34)
+      ..lineTo(w * 0.64, h * 0.44)
+      ..lineTo(w * 0.9, h)
+      ..close();
+    canvas.drawPath(front, Paint()..color = const Color(0xFF8DA2B8));
+    // сніг на вершині
+    final snow = Path()
+      ..moveTo(w * 0.42, h * 0.38)
+      ..lineTo(peak.dx, peak.dy)
+      ..lineTo(w * 0.58, h * 0.34)
+      ..lineTo(w * 0.555, h * 0.4)
+      ..lineTo(w * 0.52, h * 0.36)
+      ..lineTo(w * 0.49, h * 0.43)
+      ..lineTo(w * 0.46, h * 0.37)
+      ..close();
+    canvas.drawPath(snow, Paint()..color = Colors.white);
+    // храм на вершині
+    final templeW = w * 0.075, templeH = h * 0.08;
+    final base = Offset(peak.dx - templeW / 2, peak.dy - templeH * 0.8);
+    final gold = Paint()..color = AppColors.gold;
+    final roof = Path()
+      ..moveTo(base.dx - templeW * 0.1, base.dy + templeH * 0.3)
+      ..lineTo(peak.dx, base.dy - templeH * 0.15)
+      ..lineTo(base.dx + templeW * 1.1, base.dy + templeH * 0.3)
+      ..close();
+    canvas.drawPath(roof, gold);
+    for (var i = 0; i < 4; i++) {
+      final x = base.dx + templeW * (0.05 + i * 0.3);
+      canvas.drawRect(
+          Rect.fromLTWH(x, base.dy + templeH * 0.32, templeW * 0.1,
+              templeH * 0.6),
+          gold);
+    }
+    canvas.drawRect(
+        Rect.fromLTWH(base.dx - templeW * 0.05, base.dy + templeH * 0.9,
+            templeW * 1.1, templeH * 0.12),
+        gold);
+    // хмари біля підніжжя
+    final cloud = Paint()..color = Colors.white.withAlpha(235);
+    void puff(double cx, double cy, double r) {
+      canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(cx, cy), width: r * 3.2, height: r * 1.3),
+          cloud);
+      canvas.drawCircle(Offset(cx - r * 0.5, cy - r * 0.35), r * 0.6, cloud);
+      canvas.drawCircle(Offset(cx + r * 0.4, cy - r * 0.45), r * 0.75, cloud);
+    }
+
+    puff(w * 0.18, h * 0.86, h * 0.13);
+    puff(w * 0.47, h * 0.9, h * 0.15);
+    puff(w * 0.78, h * 0.84, h * 0.12);
+    puff(w * 0.33, h * 0.62, h * 0.08);
+    puff(w * 0.66, h * 0.58, h * 0.07);
+  }
+
+  @override
+  bool shouldRepaint(_OlympusPainter old) => false;
+}
+
 /// Грецький меандр — орнамент-розділювач.
 class Meander extends StatelessWidget {
   final Color color;
   final double height;
 
-  const Meander({super.key, this.color = AppColors.accent, this.height = 14});
+  const Meander({super.key, this.color = AppColors.gold, this.height = 14});
 
   @override
   Widget build(BuildContext context) {
@@ -179,18 +312,21 @@ class DebatesApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.accent,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
     ).copyWith(
       primary: AppColors.accent,
-      onPrimary: AppColors.background,
+      onPrimary: AppColors.onAccent,
       secondary: AppColors.gold,
       surface: AppColors.surface,
       onSurface: AppColors.text,
       outline: AppColors.textMuted,
     );
-    final base = ThemeData(useMaterial3: true, brightness: Brightness.dark);
-    final textTheme = GoogleFonts.getTextTheme('Alegreya', base.textTheme)
-        .apply(bodyColor: AppColors.text, displayColor: AppColors.text);
+    final base = ThemeData(useMaterial3: true, brightness: Brightness.light);
+    final textTheme = base.textTheme.apply(
+      fontFamily: kBodyFont,
+      bodyColor: AppColors.text,
+      displayColor: AppColors.text,
+    );
 
     return ValueListenableBuilder<String>(
       valueListenable: appLang,
@@ -201,6 +337,7 @@ class DebatesApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: scheme,
+          fontFamily: kBodyFont,
           textTheme: textTheme,
           scaffoldBackgroundColor: AppColors.background,
           dividerColor: AppColors.surfaceHigh,
@@ -309,7 +446,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'Без мови ворожнечі, погроз і непристойного вмісту.',
     'rule3': 'Не ділися контактами (телефон, соцмережі, адреса) і не проси їх.',
     'rule4': 'На порушників можна поскаржитися.',
-    'ageCheck': 'Мені є 16 років, і я приймаю правила',
+    'ageCheck': 'Мені є 16 років, і я приймаю правила та умови користування',
     'nickLabel': 'Твій нікнейм',
     'start': 'Почати',
     'nickError': 'Нікнейм має містити від 2 до 20 символів',
@@ -399,6 +536,22 @@ const Map<String, Map<String, String>> _strings = {
     'retry': 'Спробувати ще',
     'judgeDisclaimer': 'Оцінює AI, і він може помилятися. Судді оцінюють якість '
         'аргументів, а не позицію.',
+    'account': 'Акаунт',
+    'terms': 'Умови користування',
+    'privacy': 'Політика конфіденційності',
+    'deleteAccount': 'Видалити акаунт',
+    'deleteConfirm': 'Видалити акаунт назавжди? Нік, усі дебати з людьми, скарги й блокування буде стерто. Це не можна скасувати.',
+    'deleteDone': 'Акаунт видалено.',
+    'reportAi': 'Поскаржитися на відповідь AI',
+    'r_false': 'Неправдива або шкідлива інформація',
+    'aiReported': 'Дякуємо! Скаргу надіслано.',
+    'customTopic': 'Своя тема',
+    'customTopicSub': 'Напиши твердження, про яке хочеш посперечатися',
+    'customTopicHint': 'Напр.: Шкільна форма має бути скасована',
+    'customTopicHuman': 'Суперника шукатимемо серед тих, хто вибрав «Випадкову тему».',
+    'topicTooShort': 'Тема має бути від 10 до 150 символів',
+    'topicRejected': 'Таку тему не можна використати. Сформулюй інакше, без образ і контактів.',
+    'ok': 'Далі',
   },
   'de': {
     'appTitle': 'Debatos',
@@ -450,7 +603,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'Keine Hassrede, keine Drohungen, keine anstößigen Inhalte.',
     'rule3': 'Teile keine Kontaktdaten (Telefon, Social Media, Adresse) und frag nicht danach.',
     'rule4': 'Verstöße können gemeldet werden.',
-    'ageCheck': 'Ich bin mindestens 16 Jahre alt und akzeptiere die Regeln',
+    'ageCheck': 'Ich bin mindestens 16 Jahre alt und akzeptiere die Regeln und Nutzungsbedingungen',
     'nickLabel': 'Dein Nickname',
     'start': 'Starten',
     'nickError': 'Der Nickname muss 2 bis 20 Zeichen lang sein',
@@ -541,6 +694,22 @@ const Map<String, Map<String, String>> _strings = {
     'retry': 'Erneut versuchen',
     'judgeDisclaimer': 'Die Bewertung macht eine KI und kann Fehler enthalten. '
         'Bewertet wird die Qualität der Argumente, nicht die Position.',
+    'account': 'Konto',
+    'terms': 'Nutzungsbedingungen',
+    'privacy': 'Datenschutzerklärung',
+    'deleteAccount': 'Konto löschen',
+    'deleteConfirm': 'Konto endgültig löschen? Nickname, alle Debatten mit Menschen, Meldungen und Blockierungen werden gelöscht. Das kann nicht rückgängig gemacht werden.',
+    'deleteDone': 'Konto gelöscht.',
+    'reportAi': 'KI-Antwort melden',
+    'r_false': 'Falsche oder schädliche Information',
+    'aiReported': 'Danke! Die Meldung wurde gesendet.',
+    'customTopic': 'Eigenes Thema',
+    'customTopicSub': 'Schreib eine These, über die du streiten willst',
+    'customTopicHint': 'Z. B.: Schuluniformen sollten abgeschafft werden',
+    'customTopicHuman': 'Wir suchen einen Gegner unter denen, die „Zufälliges Thema“ gewählt haben.',
+    'topicTooShort': 'Das Thema muss 10 bis 150 Zeichen lang sein',
+    'topicRejected': 'Dieses Thema ist nicht erlaubt. Formuliere es ohne Beleidigungen und Kontakte.',
+    'ok': 'Weiter',
   },
   'en': {
     'appTitle': 'Debatos',
@@ -592,7 +761,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'No hate speech, no threats, no explicit content.',
     'rule3': 'Do not share contact details (phone, social media, address) or ask for them.',
     'rule4': 'Rule breakers can be reported.',
-    'ageCheck': 'I am at least 16 years old and accept the rules',
+    'ageCheck': 'I am at least 16 years old and accept the rules and Terms of Use',
     'nickLabel': 'Your nickname',
     'start': 'Start',
     'nickError': 'Nickname must be 2 to 20 characters long',
@@ -683,6 +852,22 @@ const Map<String, Map<String, String>> _strings = {
     'retry': 'Try again',
     'judgeDisclaimer': 'Scoring is done by AI and can be wrong. Judges rate '
         'the quality of arguments, not the position.',
+    'account': 'Account',
+    'terms': 'Terms of Use',
+    'privacy': 'Privacy Policy',
+    'deleteAccount': 'Delete account',
+    'deleteConfirm': 'Delete your account forever? Your nickname, all debates with people, reports and blocks will be erased. This cannot be undone.',
+    'deleteDone': 'Account deleted.',
+    'reportAi': 'Report AI answer',
+    'r_false': 'False or harmful information',
+    'aiReported': 'Thank you! The report was sent.',
+    'customTopic': 'Your own topic',
+    'customTopicSub': 'Write a statement you want to debate',
+    'customTopicHint': 'E.g.: School uniforms should be abolished',
+    'customTopicHuman': 'We’ll look for an opponent among people who chose “Random topic”.',
+    'topicTooShort': 'The topic must be 10 to 150 characters long',
+    'topicRejected': 'This topic is not allowed. Rephrase it without insults or contact details.',
+    'ok': 'Next',
   },
   'es': {
     'appTitle': 'Debatos',
@@ -735,7 +920,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'Sin discurso de odio, amenazas ni contenido inapropiado.',
     'rule3': 'No compartas datos de contacto (teléfono, redes sociales, dirección) ni los pidas.',
     'rule4': 'Se puede denunciar a quien incumpla las normas.',
-    'ageCheck': 'Tengo al menos 16 años y acepto las normas',
+    'ageCheck': 'Tengo al menos 16 años y acepto las normas y las condiciones de uso',
     'nickLabel': 'Tu apodo',
     'start': 'Empezar',
     'nickError': 'El apodo debe tener entre 2 y 20 caracteres',
@@ -826,6 +1011,22 @@ const Map<String, Map<String, String>> _strings = {
     'retry': 'Reintentar',
     'judgeDisclaimer': 'La evaluación la hace una IA y puede equivocarse. Se '
         'valora la calidad de los argumentos, no la postura.',
+    'account': 'Cuenta',
+    'terms': 'Condiciones de uso',
+    'privacy': 'Política de privacidad',
+    'deleteAccount': 'Eliminar cuenta',
+    'deleteConfirm': '¿Eliminar tu cuenta para siempre? Se borrarán tu apodo, todos los debates con personas, denuncias y bloqueos. No se puede deshacer.',
+    'deleteDone': 'Cuenta eliminada.',
+    'reportAi': 'Denunciar respuesta de la IA',
+    'r_false': 'Información falsa o dañina',
+    'aiReported': '¡Gracias! La denuncia se ha enviado.',
+    'customTopic': 'Tu propio tema',
+    'customTopicSub': 'Escribe una afirmación que quieras debatir',
+    'customTopicHint': 'P. ej.: Los uniformes escolares deberían abolirse',
+    'customTopicHuman': 'Buscaremos rival entre quienes eligieron «Tema aleatorio».',
+    'topicTooShort': 'El tema debe tener entre 10 y 150 caracteres',
+    'topicRejected': 'Este tema no está permitido. Reformúlalo sin insultos ni contactos.',
+    'ok': 'Siguiente',
   },
   'fr': {
     'appTitle': 'Debatos',
@@ -875,7 +1076,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'Pas de discours haineux, de menaces ni de contenu explicite.',
     'rule3': 'Ne partage pas tes coordonnées (téléphone, réseaux sociaux, adresse) et ne les demande pas.',
     'rule4': 'Les fautifs peuvent être signalés.',
-    'ageCheck': 'J’ai au moins 16 ans et j’accepte les règles',
+    'ageCheck': 'J’ai au moins 16 ans et j’accepte les règles et les conditions d’utilisation',
     'nickLabel': 'Ton pseudo',
     'start': 'Commencer',
     'nickError': 'Le pseudo doit contenir de 2 à 20 caractères',
@@ -964,6 +1165,22 @@ const Map<String, Map<String, String>> _strings = {
     'judgesError': 'Les juges sont indisponibles pour le moment. Réessaie plus tard.',
     'retry': 'Réessayer',
     'judgeDisclaimer': 'La notation est faite par une IA et peut se tromper. Les juges évaluent la qualité des arguments, pas la position.',
+    'account': 'Compte',
+    'terms': 'Conditions d’utilisation',
+    'privacy': 'Politique de confidentialité',
+    'deleteAccount': 'Supprimer le compte',
+    'deleteConfirm': 'Supprimer ton compte définitivement ? Ton pseudo, tous les débats avec des humains, signalements et blocages seront effacés. C’est irréversible.',
+    'deleteDone': 'Compte supprimé.',
+    'reportAi': 'Signaler la réponse de l’IA',
+    'r_false': 'Information fausse ou dangereuse',
+    'aiReported': 'Merci ! Le signalement a été envoyé.',
+    'customTopic': 'Ton propre sujet',
+    'customTopicSub': 'Écris une affirmation que tu veux débattre',
+    'customTopicHint': 'Ex. : L’uniforme scolaire devrait être supprimé',
+    'customTopicHuman': 'On cherchera un adversaire parmi ceux qui ont choisi « Sujet au hasard ».',
+    'topicTooShort': 'Le sujet doit contenir de 10 à 150 caractères',
+    'topicRejected': 'Ce sujet n’est pas autorisé. Reformule-le sans insultes ni coordonnées.',
+    'ok': 'Suivant',
   },
   'ru': {
     'appTitle': 'Debatos',
@@ -1013,7 +1230,7 @@ const Map<String, Map<String, String>> _strings = {
     'rule2': 'Без языка вражды, угроз и откровенного контента.',
     'rule3': 'Не делись контактами (телефон, соцсети, адрес) и не проси их.',
     'rule4': 'На нарушителей можно пожаловаться.',
-    'ageCheck': 'Мне есть 16 лет, и я принимаю правила',
+    'ageCheck': 'Мне есть 16 лет, и я принимаю правила и условия использования',
     'nickLabel': 'Твой ник',
     'start': 'Начать',
     'nickError': 'Ник должен быть от 2 до 20 символов',
@@ -1102,6 +1319,22 @@ const Map<String, Map<String, String>> _strings = {
     'judgesError': 'Судьи сейчас недоступны. Попробуй позже.',
     'retry': 'Попробовать ещё раз',
     'judgeDisclaimer': 'Оценку ставит AI, он может ошибаться. Судьи оценивают качество аргументов, а не позицию.',
+    'account': 'Аккаунт',
+    'terms': 'Условия использования',
+    'privacy': 'Политика конфиденциальности',
+    'deleteAccount': 'Удалить аккаунт',
+    'deleteConfirm': 'Удалить аккаунт навсегда? Ник, все дебаты с людьми, жалобы и блокировки будут стёрты. Это нельзя отменить.',
+    'deleteDone': 'Аккаунт удалён.',
+    'reportAi': 'Пожаловаться на ответ AI',
+    'r_false': 'Ложная или вредная информация',
+    'aiReported': 'Спасибо! Жалоба отправлена.',
+    'customTopic': 'Своя тема',
+    'customTopicSub': 'Напиши утверждение, о котором хочешь поспорить',
+    'customTopicHint': 'Напр.: Школьную форму нужно отменить',
+    'customTopicHuman': 'Соперника будем искать среди тех, кто выбрал «Случайную тему».',
+    'topicTooShort': 'Тема должна быть от 10 до 150 символов',
+    'topicRejected': 'Такую тему нельзя использовать. Сформулируй иначе, без оскорблений и контактов.',
+    'ok': 'Далее',
   },
 };
 
@@ -1124,7 +1357,8 @@ class Topic {
 
   const Topic({required this.id, required this.category, required this.titles});
 
-  String titleIn(String lang) => titles[lang] ?? titles['en']!;
+  String titleIn(String lang) =>
+      titles[lang] ?? titles['en'] ?? titles.values.first;
   String get title => titleIn(appLang.value);
 }
 
@@ -1300,6 +1534,124 @@ const List<Topic> topics = [
     'ru': 'Школа должна быть онлайн хотя бы два раза в неделю',
   }),
 ];
+
+/// Власна тема: однаковий текст → однаковий id, щоб такі люди могли зустрітися.
+Topic customTopic(String text) {
+  var h = 0x811c9dc5;
+  for (final c in text.toLowerCase().codeUnits) {
+    h = ((h ^ c) * 0x01000193) & 0xFFFFFFFF;
+  }
+  return Topic(
+    id: 'custom-${h.toRadixString(16)}',
+    category: 'custom',
+    titles: {appLang.value: text},
+  );
+}
+
+class _CustomTopicDialog extends StatefulWidget {
+  final bool human;
+
+  const _CustomTopicDialog({required this.human});
+
+  @override
+  State<_CustomTopicDialog> createState() => _CustomTopicDialogState();
+}
+
+class _CustomTopicDialogState extends State<_CustomTopicDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final t = _controller.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (t.length < 10 || t.length > 150) {
+      setState(() => _error = tr('topicTooShort'));
+      return;
+    }
+    if (!Session.online) {
+      Navigator.pop(context, t);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final r = await Api.call('topic', {'text': t});
+      if (!mounted) return;
+      if (r['ok'] == true) {
+        Navigator.pop(context, (r['text'] ?? t).toString());
+      } else {
+        setState(() {
+          _busy = false;
+          _error = tr('topicRejected');
+        });
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = e.code == 'topic_short' || e.code == 'topic_long'
+            ? tr('topicTooShort')
+            : Api.errorText(e);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(tr('customTopic'), style: classic(fontSize: 24)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            maxLength: 150,
+            minLines: 2,
+            maxLines: 4,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: tr('customTopicHint'),
+              errorText: _error,
+              errorMaxLines: 3,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (widget.human)
+            Text(
+              tr('customTopicHuman'),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tr('cancel')),
+        ),
+        FilledButton(
+          onPressed: _busy ? null : _submit,
+          child: _busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(tr('ok')),
+        ),
+      ],
+    );
+  }
+}
 
 List<Topic> topicsIn(String category) =>
     topics.where((t) => t.category == category).toList();
@@ -1634,6 +1986,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: [
+              const OlympusBanner(),
+              const SizedBox(height: 16),
               Text(
                 tr('tagline'),
                 style: classic(fontSize: 24, height: 1.2),
@@ -1730,13 +2084,97 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               const _LanguagePanel(),
+              const SizedBox(height: 28),
+              Text(
+                tr('account'),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.surfaceHigh),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.gavel_rounded,
+                          color: AppColors.textMuted),
+                      title: Text(tr('terms')),
+                      trailing:
+                          const Icon(Icons.open_in_new_rounded, size: 18),
+                      onTap: () => openPage(context, '/terms'),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.privacy_tip_outlined,
+                          color: AppColors.textMuted),
+                      title: Text(tr('privacy')),
+                      trailing:
+                          const Icon(Icons.open_in_new_rounded, size: 18),
+                      onTap: () => openPage(context, '/privacy'),
+                    ),
+                    if (Session.hasProfile) ...[
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.delete_forever_rounded,
+                            color: AppColors.con),
+                        title: Text(tr('deleteAccount'),
+                            style: const TextStyle(color: AppColors.con)),
+                        onTap: _deleteAccount,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  Future<void> _deleteAccount() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('deleteAccount')),
+        content: Text(tr('deleteConfirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(tr('no')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.con),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(tr('deleteAccount')),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    try {
+      await Api.call('delete_account', {});
+    } on ApiException catch (e) {
+      // якщо акаунта вже немає на сервері — просто чистимо телефон
+      if (e.code != 'auth') {
+        if (mounted) showSnack(context, Api.errorText(e));
+        return;
+      }
+    }
+    await Session.clear();
+    if (!mounted) return;
+    showSnack(context, tr('deleteDone'));
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      (_) => false,
+    );
+  }
 }
+
 
 class _DebateTile extends StatelessWidget {
   final IconData icon;
@@ -1828,15 +2266,15 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = highlighted ? AppColors.accent : AppColors.surface;
-    final fg = highlighted ? AppColors.background : AppColors.text;
-    final sub = highlighted ? AppColors.background.withAlpha(220) : AppColors.textMuted;
+    final fg = highlighted ? AppColors.onAccent : AppColors.text;
+    final sub = highlighted ? AppColors.onAccent.withAlpha(215) : AppColors.textMuted;
 
     return Material(
       color: bg,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(6),
         side: BorderSide(
-          color: highlighted ? AppColors.gold : AppColors.accent.withAlpha(90),
+          color: highlighted ? AppColors.gold : AppColors.gold.withAlpha(110),
           width: highlighted ? 2 : 1,
         ),
       ),
@@ -2026,6 +2464,16 @@ class TopicsScreen extends StatelessWidget {
     await _start(context, topic, side, anyTopic: false);
   }
 
+  /// «Своя тема»: людина пише твердження, сервер перевіряє його модерацією.
+  Future<void> _onCustom(BuildContext context) async {
+    final text = await showDialog<String>(
+      context: context,
+      builder: (_) => _CustomTopicDialog(human: human),
+    );
+    if (text == null || !context.mounted) return;
+    await _onTopic(context, customTopic(text));
+  }
+
   /// «Випадкова тема».
   Future<void> _onRandom(BuildContext context) async {
     final topic = _randomTopic();
@@ -2097,15 +2545,18 @@ class TopicsScreen extends StatelessWidget {
         children: [
           Material(
             color: AppColors.accent,
-            borderRadius: BorderRadius.circular(18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+              side: const BorderSide(color: AppColors.gold, width: 2),
+            ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(6),
               onTap: () => _onRandom(context),
               child: Padding(
                 padding: const EdgeInsets.all(18),
                 child: Row(
                   children: [
-                    const Icon(Icons.casino_rounded, color: Colors.black, size: 30),
+                    const Icon(Icons.casino_rounded, color: AppColors.onAccent, size: 30),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -2114,17 +2565,55 @@ class TopicsScreen extends StatelessWidget {
                           Text(
                             tr('randomTopic'),
                             style: classic(
-                                color: AppColors.background, fontSize: 22),
+                                color: AppColors.onAccent, fontSize: 22),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             tr(human ? 'randomTopicSubHuman' : 'randomTopicSubAi'),
-                            style: const TextStyle(color: Colors.black87),
+                            style: TextStyle(
+                                color: AppColors.onAccent.withAlpha(215)),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_rounded, color: Colors.black),
+                    const Icon(Icons.arrow_forward_rounded, color: AppColors.onAccent),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Material(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+              side: BorderSide(color: AppColors.gold.withAlpha(140)),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: () => _onCustom(context),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit_note_rounded,
+                        color: AppColors.accent, size: 30),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(tr('customTopic'), style: classic(fontSize: 22)),
+                          const SizedBox(height: 2),
+                          Text(
+                            tr('customTopicSub'),
+                            style: const TextStyle(color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_rounded,
+                        color: AppColors.accent),
                   ],
                 ),
               ),
@@ -2150,7 +2639,7 @@ class TopicsScreen extends StatelessWidget {
                   ],
                   Text(
                     tr('cat_$category'),
-                    style: classic(fontSize: 20, color: AppColors.gold),
+                    style: classic(fontSize: 20, color: AppColors.goldText),
                   ),
                 ],
               ),
@@ -2206,7 +2695,7 @@ class _SideButton extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
-    this.textColor = Colors.black,
+    this.textColor = AppColors.onAccent,
     this.height = 64,
   });
 
@@ -2322,6 +2811,48 @@ class _DebateScreenState extends State<DebateScreen> {
     });
   }
 
+  /// Скарга на відповідь AI (вимога Google Play для AI-застосунків).
+  Future<void> _reportAi(String text) async {
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(tr('reportAi'), style: classic(fontSize: 22)),
+            ),
+            for (final r in const [
+              'r_hate',
+              'r_insult',
+              'r_sexual',
+              'r_false',
+              'r_other'
+            ])
+              ListTile(
+                title: Text(tr(r)),
+                onTap: () => Navigator.pop(sheetContext, r.substring(2)),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await Api.call('ai_report', {
+        'text': text,
+        'reason': reason,
+        'topic': widget.topic.titleIn(_lang),
+      });
+      if (mounted) showSnack(context, tr('aiReported'));
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, Api.errorText(e));
+    }
+  }
+
   void _openVerdict() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -2373,10 +2904,12 @@ class _DebateScreenState extends State<DebateScreen> {
                     );
                   }
                   final m = _messages[index];
+                  final isUser = m.speaker == Speaker.user;
                   return _Bubble(
                     text: m.text,
-                    isUser: m.speaker == Speaker.user,
-                    color: m.speaker == Speaker.user ? userColor : aiColor,
+                    isUser: isUser,
+                    color: isUser ? userColor : aiColor,
+                    onReport: isUser ? null : () => _reportAi(m.text),
                   );
                 },
               ),
@@ -2440,6 +2973,13 @@ class Session {
     appLang.addListener(() => _prefs?.setString('lang', appLang.value));
     autoTranslate
         .addListener(() => _prefs?.setBool('autoTranslate', autoTranslate.value));
+  }
+
+  static Future<void> clear() async {
+    token = null;
+    nick = null;
+    await _prefs?.remove('token');
+    await _prefs?.remove('nick');
   }
 
   static Future<void> save(String newToken, String newNick) async {
@@ -2511,6 +3051,16 @@ Topic? topicById(String id) {
 String topicTitleFor(String id, String fallback) =>
     topicById(id)?.title ?? fallback;
 
+/// Відкрити сторінку сервера (умови, політика) у браузері.
+Future<void> openPage(BuildContext context, String path) async {
+  final uri = Uri.parse('$aiServerUrl$path?lang=${appLang.value}');
+  var ok = false;
+  try {
+    ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {}
+  if (!ok && context.mounted) showSnack(context, uri.toString());
+}
+
 void showSnack(BuildContext context, String text) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
@@ -2570,7 +3120,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.forum_rounded, color: AppColors.accent, size: 32),
+                const Icon(Icons.account_balance_rounded,
+                    color: AppColors.gold, size: 32),
                 const Spacer(),
                 DropdownButton<String>(
                   value: appLang.value,
@@ -2589,7 +3140,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 16),
             Text(
               tr('onboardTitle'),
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+              style: classic(fontSize: 30),
             ),
             const SizedBox(height: 8),
             Text(
@@ -2648,6 +3199,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               value: _agree,
               onChanged: (v) => setState(() => _agree = v ?? false),
               title: Text(tr('ageCheck')),
+            ),
+            Wrap(
+              spacing: 4,
+              children: [
+                TextButton(
+                  onPressed: () => openPage(context, '/terms'),
+                  child: Text(tr('terms')),
+                ),
+                TextButton(
+                  onPressed: () => openPage(context, '/privacy'),
+                  child: Text(tr('privacy')),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -3814,6 +4378,7 @@ class _Bubble extends StatelessWidget {
   final Color color;
   final bool muted;
   final String? label;
+  final VoidCallback? onReport;
 
   const _Bubble({
     required this.text,
@@ -3821,6 +4386,7 @@ class _Bubble extends StatelessWidget {
     required this.color,
     this.muted = false,
     this.label,
+    this.onReport,
   });
 
   @override
@@ -3847,14 +4413,38 @@ class _Bubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label ?? (isUser ? tr('you') : tr('aiOpponent')),
-                style: TextStyle(
-                  color: color,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label ?? (isUser ? tr('you') : tr('aiOpponent')),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  if (onReport != null) ...[
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: onReport,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.outlined_flag_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                          semanticLabel: tr('reportAi'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
+
               const SizedBox(height: 4),
               Text(
                 text,
