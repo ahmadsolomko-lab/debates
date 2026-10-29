@@ -1,10 +1,11 @@
-// Debatos — версія 0.6. Весь застосунок в одному файлі.
+// Debatos — версія 0.7. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ===================== налаштування =====================
@@ -22,14 +23,153 @@ Future<void> main() async {
   runApp(const DebatesApp());
 }
 
+/// Палітра давньогрецької вази: чорний лак, теракота, глина, олива.
 class AppColors {
-  static const Color background = Color(0xFF0E1116);
-  static const Color surface = Color(0xFF171B22);
-  static const Color surfaceHigh = Color(0xFF212733);
-  static const Color accent = Color(0xFFFF6B35);
-  static const Color pro = Color(0xFF3DDC97);
-  static const Color con = Color(0xFFFF5470);
-  static const Color textMuted = Color(0xFF9AA4B2);
+  static const Color background = Color(0xFF17100B); // чорний лак
+  static const Color surface = Color(0xFF261A12); // обпалена глина
+  static const Color surfaceHigh = Color(0xFF36261A);
+  static const Color accent = Color(0xFFD9733B); // теракота
+  static const Color gold = Color(0xFFD4A64A); // лаври, бронза
+  static const Color pro = Color(0xFF9DB36A); // олива
+  static const Color con = Color(0xFFD9624A); // червона фігура
+  static const Color text = Color(0xFFF3E6D2); // слонова кістка
+  static const Color textMuted = Color(0xFFB9A58C);
+}
+
+/// Шрифт «як на колоні» для заголовків (є кирилиця).
+TextStyle classic({
+  double fontSize = 22,
+  Color color = AppColors.text,
+  FontWeight fontWeight = FontWeight.w700,
+  double letterSpacing = 0.6,
+  double? height,
+}) =>
+    GoogleFonts.getFont(
+      'Cormorant SC',
+      fontSize: fontSize,
+      color: color,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+
+/// Грецький меандр — орнамент-розділювач.
+class Meander extends StatelessWidget {
+  final Color color;
+  final double height;
+
+  const Meander({super.key, this.color = AppColors.accent, this.height = 14});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: CustomPaint(painter: _MeanderPainter(color)),
+    );
+  }
+}
+
+class _MeanderPainter extends CustomPainter {
+  final Color color;
+  _MeanderPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final u = h / 4; // крок сітки
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = max(1.2, u * 0.45)
+      ..strokeCap = StrokeCap.square;
+    final path = Path();
+    final w = u * 4; // ширина одного «ключа»
+    final count = (size.width / w).floor();
+    final start = (size.width - count * w) / 2;
+    path.moveTo(start, h);
+    for (var i = 0; i < count; i++) {
+      final x = start + i * w;
+      path
+        ..lineTo(x, 0)
+        ..lineTo(x + u * 3, 0)
+        ..lineTo(x + u * 3, u * 3)
+        ..lineTo(x + u, u * 3)
+        ..lineTo(x + u, u)
+        ..lineTo(x + u * 2, u)
+        ..lineTo(x + u * 2, u * 2)
+        ..moveTo(x + u * 3, h)
+        ..lineTo(x, h)
+        ..moveTo(x + u * 3, h)
+        ..lineTo(x + w, h);
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_MeanderPainter old) => old.color != color;
+}
+
+/// Лавровий вінок переможця.
+class LaurelWreath extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const LaurelWreath({super.key, this.size = 72, this.color = AppColors.gold});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _LaurelPainter(color)),
+    );
+  }
+}
+
+class _LaurelPainter extends CustomPainter {
+  final Color color;
+  _LaurelPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width * 0.38;
+    final stem = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size.width * 0.03
+      ..strokeCap = StrokeCap.round;
+    final leaf = Paint()..color = color;
+    final leafLen = size.width * 0.17;
+    final leafW = size.width * 0.075;
+    for (final dir in const [-1.0, 1.0]) {
+      // гілка: від низу (90°) вгору по колу, не змикаючись зверху
+      const from = pi / 2 + 0.25;
+      const sweep = pi - 0.75;
+      final rect = Rect.fromCircle(center: c, radius: r);
+      canvas.drawArc(rect, dir < 0 ? from : pi - from - sweep, sweep, false, stem);
+      for (var i = 0; i < 7; i++) {
+        final a = dir < 0 ? from + sweep * (i + 0.5) / 7 : pi / 2 - 0.25 - sweep * (i + 0.5) / 7;
+        final p = c + Offset(cos(a), sin(a)) * r;
+        for (final side in const [-1.0, 1.0]) {
+          canvas.save();
+          canvas.translate(p.dx, p.dy);
+          // листок дивиться вздовж гілки до верху, трохи назовні/всередину
+          final tangent = a + (dir < 0 ? pi / 2 : -pi / 2);
+          canvas.rotate(tangent + side * 0.55);
+          canvas.drawOval(
+              Rect.fromLTWH(0, -leafW / 2, leafLen, leafW), leaf);
+          canvas.restore();
+        }
+      }
+    }
+    // стрічка внизу
+    canvas.drawCircle(c + Offset(0, r), size.width * 0.04, leaf);
+  }
+
+  @override
+  bool shouldRepaint(_LaurelPainter old) => old.color != color;
 }
 
 class DebatesApp extends StatelessWidget {
@@ -42,8 +182,15 @@ class DebatesApp extends StatelessWidget {
       brightness: Brightness.dark,
     ).copyWith(
       primary: AppColors.accent,
+      onPrimary: AppColors.background,
+      secondary: AppColors.gold,
       surface: AppColors.surface,
+      onSurface: AppColors.text,
+      outline: AppColors.textMuted,
     );
+    final base = ThemeData(useMaterial3: true, brightness: Brightness.dark);
+    final textTheme = GoogleFonts.getTextTheme('Alegreya', base.textTheme)
+        .apply(bodyColor: AppColors.text, displayColor: AppColors.text);
 
     return ValueListenableBuilder<String>(
       valueListenable: appLang,
@@ -54,11 +201,20 @@ class DebatesApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: scheme,
+          textTheme: textTheme,
           scaffoldBackgroundColor: AppColors.background,
-          appBarTheme: const AppBarTheme(
+          dividerColor: AppColors.surfaceHigh,
+          appBarTheme: AppBarTheme(
             backgroundColor: AppColors.background,
+            foregroundColor: AppColors.text,
             elevation: 0,
+            scrolledUnderElevation: 0,
             centerTitle: false,
+            titleTextStyle: classic(fontSize: 24),
+          ),
+          snackBarTheme: SnackBarThemeData(
+            backgroundColor: AppColors.surfaceHigh,
+            contentTextStyle: textTheme.bodyMedium,
           ),
         ),
         home: Session.hasProfile || aiServerUrl.isEmpty
@@ -1480,12 +1636,10 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Text(
                 tr('tagline'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
-                ),
+                style: classic(fontSize: 24, height: 1.2),
               ),
+              const SizedBox(height: 12),
+              const Meander(),
               if (Session.nick != null) ...[
                 const SizedBox(height: 6),
                 Text(
@@ -1674,14 +1828,20 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = highlighted ? AppColors.accent : AppColors.surface;
-    final fg = highlighted ? Colors.black : Colors.white;
-    final sub = highlighted ? Colors.black87 : AppColors.textMuted;
+    final fg = highlighted ? AppColors.background : AppColors.text;
+    final sub = highlighted ? AppColors.background.withAlpha(220) : AppColors.textMuted;
 
     return Material(
       color: bg,
-      borderRadius: BorderRadius.circular(20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(
+          color: highlighted ? AppColors.gold : AppColors.accent.withAlpha(90),
+          width: highlighted ? 2 : 1,
+        ),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(6),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -1695,11 +1855,7 @@ class _ModeCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
-                        color: fg,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: classic(color: fg, fontSize: 22),
                     ),
                     const SizedBox(height: 4),
                     Text(subtitle, style: TextStyle(color: sub)),
@@ -1843,7 +1999,7 @@ class TopicsScreen extends StatelessWidget {
                 _SideButton(
                   label: tr('anySide'),
                   color: AppColors.surfaceHigh,
-                  textColor: Colors.white,
+                  textColor: AppColors.text,
                   height: 52,
                   onTap: () => Navigator.pop(sheetContext, 'any'),
                 ),
@@ -1957,11 +2113,8 @@ class TopicsScreen extends StatelessWidget {
                         children: [
                           Text(
                             tr('randomTopic'),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: classic(
+                                color: AppColors.background, fontSize: 22),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -1997,10 +2150,7 @@ class TopicsScreen extends StatelessWidget {
                   ],
                   Text(
                     tr('cat_$category'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: classic(fontSize: 20, color: AppColors.gold),
                   ),
                 ],
               ),
@@ -3375,18 +3525,19 @@ class _VerdictView extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Icon(Icons.gavel_rounded,
-                  size: 40, color: AppColors.accent),
+              if (verdict.userWins && !verdict.isDraw)
+                const LaurelWreath(size: 84)
+              else
+                const Icon(Icons.account_balance_rounded,
+                    size: 44, color: AppColors.gold),
               const SizedBox(height: 8),
               Text(
                 headline,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                ),
+                style: classic(fontSize: 32, color: color),
               ),
+              const SizedBox(height: 8),
+              const Meander(height: 10),
               const SizedBox(height: 6),
               Text(
                 '${verdict.userTotal} : ${verdict.aiTotal}',
@@ -3709,7 +3860,7 @@ class _Bubble extends StatelessWidget {
                 text,
                 style: TextStyle(
                   height: 1.4,
-                  color: muted ? AppColors.textMuted : Colors.white,
+                  color: muted ? AppColors.textMuted : AppColors.text,
                   fontStyle: muted ? FontStyle.italic : FontStyle.normal,
                 ),
               ),
