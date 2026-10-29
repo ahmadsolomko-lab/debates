@@ -1,7 +1,7 @@
 name: debates
 description: "Debatos — дебати з AI та людьми, з AI-суддями."
 publish_to: 'none'
-version: 0.7.0+8
+version: 0.8.0+9
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -10,7 +10,20 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.3.0
-  google_fonts: ^6.2.1
+  url_launcher: ^6.3.0
 
 flutter:
   uses-material-design: true
+  # Шрифти завантажує збірка (GitHub Actions) у папку fonts/
+  fonts:
+    - family: Alegreya
+      fonts:
+        - asset: fonts/Alegreya-Regular.ttf
+        - asset: fonts/Alegreya-Bold.ttf
+          weight: 700
+    - family: CormorantSC
+      fonts:
+        - asset: fonts/CormorantSC-SemiBold.ttf
+          weight: 600
+        - asset: fonts/CormorantSC-Bold.ttf
+          weight: 700
