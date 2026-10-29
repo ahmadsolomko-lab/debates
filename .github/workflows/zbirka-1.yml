@@ -1,0 +1,167 @@
+name: Збірка APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Завантажити код
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Впорядкувати назви файлів (прибрати «-1», «-2»…)
+        # Якщо телефон зберіг файл як main-3.dart, debatos-1.js тощо,
+        # беремо НАЙНОВІШИЙ, даємо йому правильну назву, старі видаляємо
+        # і зберігаємо це на GitHub. Вручну нічого перейменовувати не треба.
+        run: |
+          shopt -s nullglob
+          tidy() {
+            target="$1"; shift
+            newest=""; nt=-1
+            for f in "$@"; do
+              t=$(git log -1 --format=%ct -- "$f"); t=${t:-0}
+              if [ "$t" -ge "$nt" ]; then newest="$f"; nt="$t"; fi
+            done
+            [ -z "$newest" ] && return 0
+            for f in "$@"; do
+              [ "$f" = "$newest" ] && continue
+              git rm -q "$f"
+            done
+            if [ "$newest" != "$target" ]; then git mv "$newest" "$target"; fi
+            return 0
+          }
+          tidy lib/main.dart lib/main*.dart
+          tidy pubspec.yaml pubspec*.yaml
+          tidy icon.png icon*.png
+          tidy server/debatos.js server/debatos*.js
+          tidy server/pages.js server/pages*.js
+          tidy server/wrangler.json server/wrangler*.json
+          if grep -q '"debatos.js"' server/wrangler.json 2>/dev/null; then
+            git rm -q --ignore-unmatch 'server/worker*.js'
+          fi
+          git rm -q --ignore-unmatch 'lib/*.zip'
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898699+github-actions[bot]@users.noreply.github.com" \
+                commit -q -m "Авто: впорядковано назви файлів"
+            git push || echo "Не вдалося зберегти (можливо, паралельна зміна) — не страшно"
+          fi
+          git status --short
+          ls -la . lib server
+
+      - name: Встановити Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Встановити Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Створити Android-частину проєкту
+        run: flutter create --platforms=android --org app.debates --project-name debates .
+
+      - name: Назва застосунку і доступ до інтернету
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="[^"]*"/android:label="Debatos"/' $M
+          grep -q 'android.permission.INTERNET' $M || \
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' $M
+          # щоб відкривати сторінки (умови, політика) у браузері
+          sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries>\n</manifest>#' $M
+          # постійний ідентифікатор застосунку в Google Play (змінювати не можна!)
+          for G in android/app/build.gradle.kts android/app/build.gradle; do
+            [ -f $G ] && sed -i -E 's/applicationId( = |\s+)"[^"]*"/applicationId\1"app.debatos"/' $G && grep -n applicationId $G
+          done
+          true
+
+      - name: Шрифти (вбудовуються в застосунок)
+        run: |
+          mkdir -p fonts
+          G=https://raw.githubusercontent.com/google/fonts/main/ofl
+          curl -sSfL -o /tmp/Alegreya.ttf "$G/alegreya/Alegreya%5Bwght%5D.ttf"
+          curl -sSfL -o fonts/CormorantSC-SemiBold.ttf "$G/cormorantsc/CormorantSC-SemiBold.ttf"
+          curl -sSfL -o fonts/CormorantSC-Bold.ttf "$G/cormorantsc/CormorantSC-Bold.ttf"
+          python3 -m pip install -q --break-system-packages fonttools || python3 -m pip install -q fonttools
+          python3 -m fontTools.varLib.instancer /tmp/Alegreya.ttf wght=400 -q -o fonts/Alegreya-Regular.ttf
+          python3 -m fontTools.varLib.instancer /tmp/Alegreya.ttf wght=700 -q -o fonts/Alegreya-Bold.ttf
+          ls -la fonts
+
+      - name: Іконка застосунку
+        run: |
+          if [ ! -f icon.png ]; then echo "Іконки немає — залишаю стандартну"; exit 0; fi
+          command -v convert >/dev/null || (sudo apt-get update -q && sudo apt-get install -y -q imagemagick)
+          for pair in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            dir=${pair%%:*}; size=${pair##*:}
+            convert icon.png -resize ${size}x${size} android/app/src/main/res/mipmap-$dir/ic_launcher.png
+          done
+
+      - name: Постійний ключ підпису
+        # Однаковий ключ у кожній збірці — тоді нова версія ставиться
+        # поверх старої без видалення. Лише для тестових збірок,
+        # для Google Play зробимо окремий ключ.
+        run: |
+          echo "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" | base64 -d > "$GITHUB_WORKSPACE/test-signing.keystore"
+          K="$GITHUB_WORKSPACE/test-signing.keystore"
+          if [ -f android/app/build.gradle.kts ]; then
+            printf '\nandroid {\n    signingConfigs {\n        getByName("debug") {\n            storeFile = file("%s")\n            storePassword = "android"\n            keyAlias = "androiddebugkey"\n            keyPassword = "android"\n        }\n    }\n}\n' "$K" >> android/app/build.gradle.kts
+            tail -n 12 android/app/build.gradle.kts
+          else
+            printf '\nandroid {\n    signingConfigs {\n        debug {\n            storeFile file("%s")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }\n}\n' "$K" >> android/app/build.gradle
+            tail -n 12 android/app/build.gradle
+          fi
+
+      - name: Завантажити залежності
+        run: flutter pub get
+
+      - name: Зібрати APK
+        run: flutter build apk --release
+
+      - name: Відбиток підпису (має бути однаковий у всіх збірках)
+        run: keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk | grep -i sha256 || true
+
+      - name: Збірка для Google Play (AAB, ключ завантаження)
+        # Ключ лежить тут зашифрованим; пароль — лише в секреті UPLOAD_KEY_PASSWORD.
+        # Без секрету цей крок пропускається, APK все одно збирається.
+        env:
+          UPLOAD_PW: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_PW" ]; then echo "Секрету UPLOAD_KEY_PASSWORD немає — AAB не збираю"; exit 0; fi
+          echo "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" | base64 -d > "$GITHUB_WORKSPACE/upload.jks"
+          K="$GITHUB_WORKSPACE/upload.jks"
+          G=android/app/build.gradle.kts
+          if [ -f $G ]; then
+            printf '\nandroid {\n    signingConfigs {\n        getByName("debug") {\n            storeFile = file("%s")\n            storePassword = "%s"\n            keyAlias = "upload"\n            keyPassword = "%s"\n        }\n    }\n}\n' "$K" "$UPLOAD_PW" "$UPLOAD_PW" >> $G
+          else
+            printf '\nandroid {\n    signingConfigs {\n        debug {\n            storeFile file("%s")\n            storePassword "%s"\n            keyAlias "upload"\n            keyPassword "%s"\n        }\n    }\n}\n' "$K" "$UPLOAD_PW" "$UPLOAD_PW" >> android/app/build.gradle
+          fi
+          flutter build appbundle --release
+          keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep -i sha256 || true
+
+      - name: Дата збірки
+        run: echo "BUILD_DATE=$(TZ=Europe/Berlin date '+%d.%m.%Y %H:%M')" >> $GITHUB_ENV
+
+      - name: Опублікувати APK у Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v-${{ github.run_id }}
+          name: Збірка ${{ env.BUILD_DATE }}
+          body: |
+            app-release.apk — встановити на телефон.
+            app-release.aab — для Google Play.
+          make_latest: true
+          fail_on_unmatched_files: false
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
