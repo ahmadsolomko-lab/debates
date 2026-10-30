@@ -1,4 +1,4 @@
-// Debatos — версія 0.10. Весь застосунок в одному файлі.
+// Debatos — версія 0.11.1. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -756,6 +756,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Без обмежень на дебати з AI',
     'premiumWant': 'Хочу Преміум',
     'premiumThanks': 'Дякуємо! Ти серед перших, хто чекає на Преміум.',
+    'deleteFromHistory': 'Видалити з історії',
+    'deleteFromHistoryConfirm': 'Прибрати ці дебати з твоєї історії? У суперника вони залишаться.',
+    'surrenderConfirmAi': 'Здатися? Перемога дістанеться AI.',
+    'surrenderedAi': 'Ти здався. Перемога за AI.',
+    'premiumDev': 'Ще в розробці',
+    'priceMonth': '3,99 € / місяць',
+    'priceYear': '28,99 € / рік',
+    'planMonth': 'Місячна',
+    'planYear': 'Річна',
   },
   'de': {
     'appTitle': 'Debatos',
@@ -931,6 +940,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Unbegrenzte Debatten mit der KI',
     'premiumWant': 'Ich will Premium',
     'premiumThanks': 'Danke! Du gehörst zu den Ersten, die auf Premium warten.',
+    'deleteFromHistory': 'Aus dem Verlauf löschen',
+    'deleteFromHistoryConfirm': 'Diese Debatte aus deinem Verlauf entfernen? Beim Gegner bleibt sie erhalten.',
+    'surrenderConfirmAi': 'Aufgeben? Der Sieg geht an die KI.',
+    'surrenderedAi': 'Du hast aufgegeben. Die KI gewinnt.',
+    'premiumDev': 'Noch in Entwicklung',
+    'priceMonth': '3,99 € / Monat',
+    'priceYear': '28,99 € / Jahr',
+    'planMonth': 'Monatlich',
+    'planYear': 'Jährlich',
   },
   'en': {
     'appTitle': 'Debatos',
@@ -1106,6 +1124,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Unlimited debates against the AI',
     'premiumWant': 'I want Premium',
     'premiumThanks': 'Thank you! You are among the first waiting for Premium.',
+    'deleteFromHistory': 'Remove from history',
+    'deleteFromHistoryConfirm': 'Remove this debate from your history? It stays in your opponent’s history.',
+    'surrenderConfirmAi': 'Give up? The win goes to the AI.',
+    'surrenderedAi': 'You gave up. The AI wins.',
+    'premiumDev': 'Still in development',
+    'priceMonth': '€3.99 / month',
+    'priceYear': '€28.99 / year',
+    'planMonth': 'Monthly',
+    'planYear': 'Yearly',
   },
   'es': {
     'appTitle': 'Debatos',
@@ -1282,6 +1309,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Debates ilimitados contra la IA',
     'premiumWant': 'Quiero Premium',
     'premiumThanks': '¡Gracias! Estás entre los primeros que esperan Premium.',
+    'deleteFromHistory': 'Quitar del historial',
+    'deleteFromHistoryConfirm': '¿Quitar este debate de tu historial? Tu rival lo conservará.',
+    'surrenderConfirmAi': '¿Rendirte? La victoria será para la IA.',
+    'surrenderedAi': 'Te rendiste. Gana la IA.',
+    'premiumDev': 'Todavía en desarrollo',
+    'priceMonth': '3,99 € / mes',
+    'priceYear': '28,99 € / año',
+    'planMonth': 'Mensual',
+    'planYear': 'Anual',
   },
   'fr': {
     'appTitle': 'Debatos',
@@ -1453,6 +1489,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Débats illimités contre l’IA',
     'premiumWant': 'Je veux Premium',
     'premiumThanks': 'Merci ! Tu fais partie des premiers à attendre Premium.',
+    'deleteFromHistory': 'Retirer de l’historique',
+    'deleteFromHistoryConfirm': 'Retirer ce débat de ton historique ? Il reste chez ton adversaire.',
+    'surrenderConfirmAi': 'Abandonner ? La victoire ira à l’IA.',
+    'surrenderedAi': 'Tu as abandonné. L’IA gagne.',
+    'premiumDev': 'Encore en développement',
+    'priceMonth': '3,99 € / mois',
+    'priceYear': '28,99 € / an',
+    'planMonth': 'Mensuel',
+    'planYear': 'Annuel',
   },
   'ru': {
     'appTitle': 'Debatos',
@@ -1624,6 +1669,15 @@ const Map<String, Map<String, String>> _strings = {
     'perk5': 'Без ограничений на дебаты с AI',
     'premiumWant': 'Хочу Премиум',
     'premiumThanks': 'Спасибо! Ты среди первых, кто ждёт Премиум.',
+    'deleteFromHistory': 'Удалить из истории',
+    'deleteFromHistoryConfirm': 'Убрать эти дебаты из твоей истории? У соперника они останутся.',
+    'surrenderConfirmAi': 'Сдаться? Победа достанется AI.',
+    'surrenderedAi': 'Ты сдался. Победа за AI.',
+    'premiumDev': 'Ещё в разработке',
+    'priceMonth': '3,99 € / месяц',
+    'priceYear': '28,99 € / год',
+    'planMonth': 'Месячная',
+    'planYear': 'Годовая',
   },
 };
 
@@ -2244,6 +2298,33 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _hideMatch(Map<String, dynamic> m) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('deleteFromHistory')),
+        content: Text(tr('deleteFromHistoryConfirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(tr('no')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(tr('yes')),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
+    try {
+      await Api.call('hide_match', {'matchId': m['id']});
+      if (mounted) setState(() => _matches.remove(m));
+    } on ApiException catch (e) {
+      if (mounted) showSnack(context, Api.errorText(e));
+    }
+  }
+
   Future<void> _cancelWaiting(Map<String, dynamic> w) async {
     try {
       await Api.call('cancel', {'mode': 'async', 'topicId': w['topicId']});
@@ -2358,8 +2439,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 for (final m in _matches)
                   _DebateTile(
+                    trailing: m['status'] == 'active'
+                        ? null
+                        : IconButton(
+                            onPressed: () => _hideMatch(m),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            tooltip: tr('deleteFromHistory'),
+                          ),
                     icon: m['mode'] == 'live'
-                        ? Icons.casino_rounded
+                        ? Icons.forum_rounded
                         : Icons.hourglass_bottom_rounded,
                     title: topicTitleFor(
                         (m['topicId'] ?? '').toString(), (m['topicTitle'] ?? '').toString()),
@@ -2680,10 +2768,12 @@ class PremiumScreen extends StatefulWidget {
 }
 
 class _PremiumScreenState extends State<PremiumScreen> {
-  bool _sent = false;
+  bool _counted = false;
 
   Future<void> _want() async {
-    setState(() => _sent = true);
+    showSnack(context, tr('premiumDev'));
+    if (_counted) return;
+    _counted = true;
     if (Session.online) {
       try {
         await Api.call('premium_interest', {});
@@ -2691,7 +2781,6 @@ class _PremiumScreenState extends State<PremiumScreen> {
         // не страшно — це лише лічильник інтересу
       }
     }
-    if (mounted) showSnack(context, tr('premiumThanks'));
   }
 
   @override
@@ -2747,18 +2836,87 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 ],
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _PlanCard(title: tr('planMonth'), price: tr('priceMonth'))),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _PlanCard(
+                  title: tr('planYear'),
+                  price: tr('priceYear'),
+                  badge: '−40 %',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             height: 54,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: AppColors.gold),
-              onPressed: _sent ? null : _want,
+              onPressed: _want,
               icon: const Icon(Icons.workspace_premium_rounded),
               label: Text(tr('premiumWant'),
                   style: const TextStyle(
                       fontSize: 17, fontWeight: FontWeight.w800)),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanCard extends StatelessWidget {
+  final String title;
+  final String price;
+  final String? badge;
+
+  const _PlanCard({required this.title, required this.price, this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    final best = badge != null;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: best ? AppColors.gold : AppColors.surfaceHigh,
+          width: best ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        color: AppColors.textMuted, fontWeight: FontWeight.w700)),
+              ),
+              if (best)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(badge!,
+                      style: const TextStyle(
+                          color: AppColors.onAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(price,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -3265,6 +3423,29 @@ class _DebateScreenState extends State<DebateScreen> {
     });
   }
 
+  Future<void> _surrender() async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        content: Text(tr('surrenderConfirmAi')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(tr('no')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(tr('yes')),
+          ),
+        ],
+      ),
+    );
+    if (yes != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(SnackBar(content: Text(tr('surrenderedAi'))));
+  }
+
   /// Скарга на відповідь AI (вимога Google Play для AI-застосунків).
   Future<void> _reportAi(String text) async {
     final reason = await showModalBottomSheet<String>(
@@ -3336,6 +3517,12 @@ class _DebateScreenState extends State<DebateScreen> {
                 }),
         ),
         actions: [
+          if (!_finished)
+            IconButton(
+              tooltip: tr('surrender'),
+              icon: const Icon(Icons.flag_outlined),
+              onPressed: _surrender,
+            ),
           if (!_finished && !_aiThinking && _userTurns >= 1)
             IconButton(
               tooltip: tr('toJudges'),
@@ -4202,6 +4389,12 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
             ? tr('debateLeft', {'t': _totalLeft(_msLeftTotal)})
             : tr('finished')),
         actions: [
+          if (active)
+            IconButton(
+              tooltip: tr('surrender'),
+              icon: const Icon(Icons.flag_outlined),
+              onPressed: () => _menu('surrender'),
+            ),
           PopupMenuButton<String>(
             onSelected: _menu,
             itemBuilder: (_) => [
