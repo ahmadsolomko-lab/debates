@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v8 (durations)";
+const VERSION = "v8.1 (durations)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
