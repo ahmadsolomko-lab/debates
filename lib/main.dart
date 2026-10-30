@@ -1,4 +1,4 @@
-// Debatos — версія 0.11.2. Весь застосунок в одному файлі.
+// Debatos — версія 0.12. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -753,7 +753,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Апеляція: попроси суддів переглянути вердикт',
     'perk3': 'Довші дебати — до 60 хвилин',
     'perk4': 'Статистика й поради, як сперечатися краще',
-    'perk5': 'Без обмежень на дебати з AI',
+    'perk5': 'До 30 дебатів з AI на день замість 3',
     'premiumWant': 'Хочу Преміум',
     'premiumThanks': 'Дякуємо! Ти серед перших, хто чекає на Преміум.',
     'deleteFromHistory': 'Видалити дебати',
@@ -765,6 +765,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '28,99 € / рік',
     'planMonth': 'Місячна',
     'planYear': 'Річна',
+    'aiLeft': 'Сьогодні залишилось дебатів з AI: {n} з {m}',
+    'aiLimitTitle': 'Ліміт на сьогодні',
+    'aiLimitBody': 'Безкоштовно можна провести 3 дебати з AI на день. Повертайся завтра, а з Преміумом їх буде до 30 на день. Дебати з людьми — без обмежень.',
+    'aiTurnsLimit': 'Досягнуто максимуму ходів у цих дебатах — час до суддів.',
+    'fewPeople': 'Застосунок новий, тому людей поки небагато. Можеш почекати або подебатувати з AI.',
+    'debateAiInstead': 'Дебатувати з AI на цю тему',
+    'rateLimited': 'Забагато дій за короткий час. Зачекай хвилинку.',
   },
   'de': {
     'appTitle': 'Debatos',
@@ -937,7 +944,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Berufung: lass das Urteil neu prüfen',
     'perk3': 'Längere Debatten – bis zu 60 Minuten',
     'perk4': 'Statistiken und Tipps, wie du besser debattierst',
-    'perk5': 'Unbegrenzte Debatten mit der KI',
+    'perk5': 'Bis zu 30 KI-Debatten pro Tag statt 3',
     'premiumWant': 'Ich will Premium',
     'premiumThanks': 'Danke! Du gehörst zu den Ersten, die auf Premium warten.',
     'deleteFromHistory': 'Debatte löschen',
@@ -949,6 +956,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '28,99 € / Jahr',
     'planMonth': 'Monatlich',
     'planYear': 'Jährlich',
+    'aiLeft': 'Heute verbleibende KI-Debatten: {n} von {m}',
+    'aiLimitTitle': 'Tageslimit erreicht',
+    'aiLimitBody': 'Kostenlos sind 3 KI-Debatten pro Tag möglich. Komm morgen wieder – mit Premium sind es bis zu 30 pro Tag. Debatten mit Menschen sind unbegrenzt.',
+    'aiTurnsLimit': 'Maximale Züge in dieser Debatte erreicht – ab zu den Richtern.',
+    'fewPeople': 'Die App ist neu, daher sind noch nicht viele Leute da. Warte noch etwas oder debattiere mit der KI.',
+    'debateAiInstead': 'Mit der KI zu diesem Thema debattieren',
+    'rateLimited': 'Zu viele Aktionen in kurzer Zeit. Warte einen Moment.',
   },
   'en': {
     'appTitle': 'Debatos',
@@ -1121,7 +1135,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Appeal: ask the judges to review the verdict',
     'perk3': 'Longer debates — up to 60 minutes',
     'perk4': 'Stats and tips to debate better',
-    'perk5': 'Unlimited debates against the AI',
+    'perk5': 'Up to 30 AI debates a day instead of 3',
     'premiumWant': 'I want Premium',
     'premiumThanks': 'Thank you! You are among the first waiting for Premium.',
     'deleteFromHistory': 'Delete debate',
@@ -1133,6 +1147,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '€28.99 / year',
     'planMonth': 'Monthly',
     'planYear': 'Yearly',
+    'aiLeft': 'AI debates left today: {n} of {m}',
+    'aiLimitTitle': 'Daily limit reached',
+    'aiLimitBody': 'You can have 3 free AI debates per day. Come back tomorrow — with Premium it will be up to 30 a day. Debates with people are unlimited.',
+    'aiTurnsLimit': 'Maximum turns reached in this debate — time for the judges.',
+    'fewPeople': 'The app is new, so there aren’t many people yet. Keep waiting or debate the AI.',
+    'debateAiInstead': 'Debate the AI on this topic',
+    'rateLimited': 'Too many actions in a short time. Please wait a minute.',
   },
   'es': {
     'appTitle': 'Debatos',
@@ -1306,7 +1327,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Apelación: pide a los jueces revisar el veredicto',
     'perk3': 'Debates más largos: hasta 60 minutos',
     'perk4': 'Estadísticas y consejos para debatir mejor',
-    'perk5': 'Debates ilimitados contra la IA',
+    'perk5': 'Hasta 30 debates con IA al día en vez de 3',
     'premiumWant': 'Quiero Premium',
     'premiumThanks': '¡Gracias! Estás entre los primeros que esperan Premium.',
     'deleteFromHistory': 'Eliminar debate',
@@ -1318,6 +1339,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '28,99 € / año',
     'planMonth': 'Mensual',
     'planYear': 'Anual',
+    'aiLeft': 'Debates con IA restantes hoy: {n} de {m}',
+    'aiLimitTitle': 'Límite diario alcanzado',
+    'aiLimitBody': 'Puedes tener 3 debates gratis con la IA al día. Vuelve mañana: con Premium serán hasta 30 al día. Los debates con personas son ilimitados.',
+    'aiTurnsLimit': 'Máximo de turnos alcanzado: es hora de los jueces.',
+    'fewPeople': 'La app es nueva, así que aún no hay mucha gente. Espera un poco o debate con la IA.',
+    'debateAiInstead': 'Debatir con la IA sobre este tema',
+    'rateLimited': 'Demasiadas acciones en poco tiempo. Espera un minuto.',
   },
   'fr': {
     'appTitle': 'Debatos',
@@ -1486,7 +1514,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Appel : demande aux juges de revoir le verdict',
     'perk3': 'Débats plus longs — jusqu’à 60 minutes',
     'perk4': 'Statistiques et conseils pour mieux débattre',
-    'perk5': 'Débats illimités contre l’IA',
+    'perk5': 'Jusqu’à 30 débats contre l’IA par jour au lieu de 3',
     'premiumWant': 'Je veux Premium',
     'premiumThanks': 'Merci ! Tu fais partie des premiers à attendre Premium.',
     'deleteFromHistory': 'Supprimer le débat',
@@ -1498,6 +1526,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '28,99 € / an',
     'planMonth': 'Mensuel',
     'planYear': 'Annuel',
+    'aiLeft': 'Débats contre l’IA restants aujourd’hui : {n} sur {m}',
+    'aiLimitTitle': 'Limite du jour atteinte',
+    'aiLimitBody': 'Tu as 3 débats gratuits contre l’IA par jour. Reviens demain — avec Premium, ce sera jusqu’à 30 par jour. Les débats avec des humains sont illimités.',
+    'aiTurnsLimit': 'Nombre maximal de tours atteint — place aux juges.',
+    'fewPeople': 'L’appli est nouvelle, il n’y a donc pas encore beaucoup de monde. Patiente ou débats contre l’IA.',
+    'debateAiInstead': 'Débattre contre l’IA sur ce sujet',
+    'rateLimited': 'Trop d’actions en peu de temps. Attends une minute.',
   },
   'ru': {
     'appTitle': 'Debatos',
@@ -1666,7 +1701,7 @@ const Map<String, Map<String, String>> _strings = {
     'perk2': 'Апелляция: попроси судей пересмотреть вердикт',
     'perk3': 'Более длинные дебаты — до 60 минут',
     'perk4': 'Статистика и советы, как спорить лучше',
-    'perk5': 'Без ограничений на дебаты с AI',
+    'perk5': 'До 30 дебатов с AI в день вместо 3',
     'premiumWant': 'Хочу Премиум',
     'premiumThanks': 'Спасибо! Ты среди первых, кто ждёт Премиум.',
     'deleteFromHistory': 'Удалить дебаты',
@@ -1678,6 +1713,13 @@ const Map<String, Map<String, String>> _strings = {
     'priceYear': '28,99 € / год',
     'planMonth': 'Месячная',
     'planYear': 'Годовая',
+    'aiLeft': 'Сегодня осталось дебатов с AI: {n} из {m}',
+    'aiLimitTitle': 'Лимит на сегодня',
+    'aiLimitBody': 'Бесплатно можно провести 3 дебата с AI в день. Возвращайся завтра, а с Премиумом их будет до 30 в день. Дебаты с людьми — без ограничений.',
+    'aiTurnsLimit': 'Достигнут максимум ходов в этих дебатах — время судей.',
+    'fewPeople': 'Приложение новое, поэтому людей пока немного. Можешь подождать или поспорить с AI.',
+    'debateAiInstead': 'Поспорить с AI на эту тему',
+    'rateLimited': 'Слишком много действий за короткое время. Подожди минутку.',
   },
 };
 
@@ -2008,8 +2050,21 @@ class AiReply {
   const AiReply(this.text, {this.fellBack = false});
 }
 
+/// Ліміт дебатів з AI на сьогодні ('ai_limit') або ходів у дебатах ('ai_turns').
+class AiLimitException implements Exception {
+  final String code;
+  AiLimitException(this.code);
+}
+
 class AiClient {
   final DemoAi _demo = DemoAi();
+
+  /// Ідентифікатор цих дебатів — сервер рахує ліміт по ньому.
+  final String debateId;
+
+  AiClient({String? debateId})
+      : debateId = debateId ??
+            '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 30)}';
 
   bool get isDemo => aiServerUrl.isEmpty;
 
@@ -2033,6 +2088,8 @@ class AiClient {
         final text = data is Map ? (data['reply'] ?? '').toString().trim() : '';
         if (text.isEmpty) throw Exception('empty reply');
         return AiReply(text);
+      } on AiLimitException {
+        rethrow;
       } catch (_) {
         final text = await _demo.reply(
             lang: lang, aiSide: aiSide, round: round, history: history);
@@ -2079,9 +2136,20 @@ class AiClient {
     try {
       final request = await client.postUrl(Uri.parse(aiServerUrl));
       request.headers.contentType = ContentType.json;
-      request.add(utf8.encode(jsonEncode(payload)));
+      request.add(utf8.encode(jsonEncode({
+        ...payload,
+        'token': Session.token,
+        'debateId': debateId,
+      })));
       final response = await request.close().timeout(timeout);
       final body = await response.transform(utf8.decoder).join();
+      if (response.statusCode == 429) {
+        Object? d;
+        try {
+          d = jsonDecode(body);
+        } catch (_) {}
+        throw AiLimitException(d is Map ? (d['error'] ?? 'rate').toString() : 'rate');
+      }
       if (response.statusCode != 200) {
         throw Exception('HTTP ${response.statusCode}');
       }
@@ -3034,6 +3102,23 @@ class TopicsScreen extends StatelessWidget {
   Future<void> _start(BuildContext context, Topic topic, String side,
       {required bool anyTopic}) async {
     if (mode == 'ai') {
+      if (Session.online) {
+        try {
+          final st = await Api.call('ai_status', {});
+          if (!context.mounted) return;
+          if (((st['left'] as num?) ?? 1) <= 0) {
+            final premium = await showAiLimitDialog(context);
+            if (premium && context.mounted) {
+              Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PremiumScreen()));
+            }
+            return;
+          }
+        } on ApiException catch (_) {
+          // не вдалося перевірити — сервер однаково не пропустить понад ліміт
+        }
+        if (!context.mounted) return;
+      }
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => DebateScreen(
@@ -3118,6 +3203,22 @@ class TopicsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(tr('durationHint'),
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            if (mode == 'ai' && Session.online)
+              FutureBuilder<Map<String, dynamic>>(
+                future: Api.call('ai_status', {}),
+                builder: (context, snap) {
+                  final d = snap.data;
+                  if (d == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      tr('aiLeft', {'n': '${d['left']}', 'm': '${d['limit']}'}),
+                      style: const TextStyle(
+                          color: AppColors.goldText, fontWeight: FontWeight.w700),
+                    ),
+                  );
+                },
+              ),
             const SizedBox(height: 14),
           ],
           Material(
@@ -3389,13 +3490,35 @@ class _DebateScreenState extends State<DebateScreen> {
     });
     _scrollToEnd();
 
-    final reply = await _ai.reply(
-      lang: _lang,
-      topic: widget.topic,
-      aiSide: widget.userSide.opposite,
-      round: _stage,
-      history: List.unmodifiable(_messages),
-    );
+    final AiReply reply;
+    try {
+      reply = await _ai.reply(
+        lang: _lang,
+        topic: widget.topic,
+        aiSide: widget.userSide.opposite,
+        round: _stage,
+        history: List.unmodifiable(_messages),
+      );
+    } on AiLimitException catch (e) {
+      if (!mounted) return;
+      setState(() => _aiThinking = false);
+      if (e.code == 'ai_limit') {
+        final premium = await showAiLimitDialog(context);
+        if (!mounted) return;
+        if (premium) {
+          Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const PremiumScreen()));
+        } else {
+          Navigator.of(context).pop();
+        }
+      } else if (e.code == 'ai_turns') {
+        showSnack(context, tr('aiTurnsLimit'));
+        setState(() => _finished = true);
+      } else {
+        showSnack(context, tr('rateLimited'));
+      }
+      return;
+    }
     if (!mounted) return;
 
     if (reply.fellBack) {
@@ -3495,6 +3618,7 @@ class _DebateScreenState extends State<DebateScreen> {
           topic: widget.topic,
           userSide: widget.userSide,
           lang: _lang,
+          debateId: _ai.debateId,
           messages: List.unmodifiable(_messages),
         ),
       ),
@@ -3693,8 +3817,9 @@ class Api {
     }
   }
 
-  static String errorText(ApiException e) =>
-      e.code == 'banned' ? tr('banned') : tr('networkError');
+  static String errorText(ApiException e) => e.code == 'banned'
+      ? tr('banned')
+      : (e.code == 'rate' ? tr('rateLimited') : tr('networkError'));
 }
 
 Topic? topicById(String id) {
@@ -3715,6 +3840,26 @@ Future<void> openPage(BuildContext context, String path) async {
     ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
   } catch (_) {}
   if (!ok && context.mounted) showSnack(context, uri.toString());
+}
+
+/// Повідомлення про денний ліміт дебатів з AI. true — людина хоче глянути Преміум.
+Future<bool> showAiLimitDialog(BuildContext context) async {
+  final premium = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(tr('aiLimitTitle')),
+      content: Text(tr('aiLimitBody')),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(c, true),
+          child: Text(tr('premiumTitle')),
+        ),
+        FilledButton(
+            onPressed: () => Navigator.pop(c, false), child: const Text('OK')),
+      ],
+    ),
+  );
+  return premium == true;
 }
 
 void showSnack(BuildContext context, String text) {
@@ -3946,6 +4091,22 @@ class _RouletteScreenState extends State<RouletteScreen> {
     super.dispose();
   }
 
+  /// Немає людей — дебати з AI на ту саму тему.
+  void _debateAi() {
+    final side = widget.side == 'pro'
+        ? Side.pro
+        : (widget.side == 'con' ? Side.con : (Random().nextBool() ? Side.pro : Side.con));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => DebateScreen(
+          topic: widget.topic ?? _topic,
+          userSide: side,
+          minutes: widget.minutes,
+        ),
+      ),
+    );
+  }
+
   void _stop(String message) {
     _timer?.cancel();
     _done = true;
@@ -3957,7 +4118,8 @@ class _RouletteScreenState extends State<RouletteScreen> {
     if (_busy || _done) return;
     _busy = true;
     try {
-      _seconds += 2;
+      if (!mounted) return;
+      setState(() => _seconds += 2);
       if (_seconds > _maxSeconds) {
         _stop(tr('nobody'));
         return;
@@ -4035,6 +4197,20 @@ class _RouletteScreenState extends State<RouletteScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(height: 1.4),
                       ),
+                      if (_seconds >= 30) ...[
+                        const SizedBox(height: 18),
+                        Text(
+                          tr('fewPeople'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.icon(
+                          onPressed: _debateAi,
+                          icon: const Icon(Icons.smart_toy_outlined),
+                          label: Text(tr('debateAiInstead')),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Text(
                         tr('searchingHint'),
@@ -4624,6 +4800,7 @@ class VerdictScreen extends StatefulWidget {
   final Side userSide;
   final String lang;
   final List<DebateMessage> messages;
+  final String debateId;
 
   const VerdictScreen({
     super.key,
@@ -4631,6 +4808,7 @@ class VerdictScreen extends StatefulWidget {
     required this.userSide,
     required this.lang,
     required this.messages,
+    required this.debateId,
   });
 
   @override
@@ -4638,7 +4816,7 @@ class VerdictScreen extends StatefulWidget {
 }
 
 class _VerdictScreenState extends State<VerdictScreen> {
-  final AiClient _ai = AiClient();
+  late final AiClient _ai = AiClient(debateId: widget.debateId);
   Verdict? _verdict;
   bool _loading = true;
 
