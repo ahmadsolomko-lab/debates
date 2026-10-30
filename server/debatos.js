@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v9 (history)";
+const VERSION = "v9.1 (history)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
@@ -649,12 +649,21 @@ export class Hub extends DurableObject {
     return this.block(user, b);
   }
 
-  // ---------- прибрати дебати з власної історії ----------
+  // ---------- видалити завершені дебати (зникають в обох учасників) ----------
   hideMatch(user, b) {
     const m = this.getMatch(user, b.matchId);
     if (m.status === "active") throw fail("active", 409);
-    this.run(`INSERT OR IGNORE INTO hidden_matches (user_id, match_id) VALUES (?, ?)`, user.id, m.id);
+    this.deleteMatch(m.id);
     return { ok: true };
+  }
+
+  deleteMatch(mid) {
+    this.run(`DELETE FROM translations WHERE msg_id IN (SELECT id FROM messages WHERE match_id = ?)`, mid);
+    this.run(`DELETE FROM messages WHERE match_id = ?`, mid);
+    this.run(`DELETE FROM verdicts WHERE match_id = ?`, mid);
+    this.run(`DELETE FROM topic_tr WHERE match_id = ?`, mid);
+    this.run(`DELETE FROM hidden_matches WHERE match_id = ?`, mid);
+    this.run(`DELETE FROM matches WHERE id = ?`, mid);
   }
 
   // ---------- Преміум: поки лише рахуємо, скільки людей хочуть ----------
@@ -686,14 +695,7 @@ export class Hub extends DurableObject {
   deleteAccount(user) {
     const id = user.id;
     const ids = this.rows(`SELECT id FROM matches WHERE pro = ? OR con = ?`, id, id).map((r) => r.id);
-    for (const mid of ids) {
-      this.run(`DELETE FROM translations WHERE msg_id IN (SELECT id FROM messages WHERE match_id = ?)`, mid);
-      this.run(`DELETE FROM messages WHERE match_id = ?`, mid);
-      this.run(`DELETE FROM verdicts WHERE match_id = ?`, mid);
-      this.run(`DELETE FROM topic_tr WHERE match_id = ?`, mid);
-      this.run(`DELETE FROM matches WHERE id = ?`, mid);
-      this.run(`DELETE FROM hidden_matches WHERE match_id = ?`, mid);
-    }
+    for (const mid of ids) this.deleteMatch(mid);
     this.run(`DELETE FROM queue WHERE user_id = ?`, id);
     this.run(`DELETE FROM premium_interest WHERE user_id = ?`, id);
     this.run(`DELETE FROM blocks WHERE blocker = ? OR blocked = ?`, id, id);
