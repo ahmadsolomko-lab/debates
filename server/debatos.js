@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v6 (store-ready)";
+const VERSION = "v8 (durations)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
@@ -21,8 +21,11 @@ const ROUNDS = {
 };
 
 // Дебати з людьми
-const TURNS = 6; // 3 раунди × 2 сторони, починає сторона «ЗА»
-const TURN_MS = { live: 3 * 60 * 1000, async: 24 * 60 * 60 * 1000 };
+// Дебати з людьми обмежені часом, а не раундами. Починає сторона «ЗА».
+const TOTAL_MS = { live: 10 * 60 * 1000, async: 3 * 24 * 60 * 60 * 1000 }; // увесь спір
+const TURN_MS = { live: 3 * 60 * 1000, async: 24 * 60 * 60 * 1000 };       // на одну відповідь
+const MAX_MESSAGES = 40;
+const LIVE_MINUTES = [5, 10, 15, 30]; // вибір тривалості в «Залі дискусій» // запобіжник: довші дебати судді не подужають
 const LIVE_QUEUE_STALE_MS = 25 * 1000;
 const REPORTS_TO_BAN = 5;
 
@@ -43,7 +46,9 @@ export default {
     try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
     const lang = LANGS[b.lang] ? b.lang : "en";
     const topic = String(b.topic || "").slice(0, 300);
-    const history = Array.isArray(b.history) ? b.history.slice(-8) : [];
+    const all = Array.isArray(b.history) ? b.history : [];
+    // судді бачать увесь спір (до 40 реплік), суперник — останні 8
+    const history = b.mode === "judge" ? all.slice(-MAX_MESSAGES) : all.slice(-8);
     if (b.mode === "judge") {
       const userSide = b.userSide === "con" ? "con" : "pro";
       const entries = history.map((m) => ({ who: m.speaker === "user" ? "X" : "Y", text: m.text }));
@@ -277,6 +282,11 @@ export class Hub extends DurableObject {
     for (const s of ddl) this.sql.exec(s);
     // v4: «будь-яка тема» — topic_id = '*', а запасна тема (якщо обидва «будь-яка») — fallback_id/topic_title
     try { this.sql.exec(`ALTER TABLE queue ADD COLUMN fallback_id TEXT`); } catch { /* уже є */ }
+    // v7: кінець усього спору
+    try { this.sql.exec(`ALTER TABLE matches ADD COLUMN ends_at INTEGER`); } catch { /* уже є */ }
+    // v8: тривалість спору, яку вибрала людина, і інтерес до Преміуму
+    try { this.sql.exec(`ALTER TABLE queue ADD COLUMN minutes INTEGER`); } catch { /* уже є */ }
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS premium_interest (user_id TEXT PRIMARY KEY, ts INTEGER)`);
   }
 
   rows(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
@@ -311,6 +321,7 @@ export class Hub extends DurableObject {
         case "report": return json(this.report(user, b));
         case "block": return json(this.block(user, b));
         case "topic": return json(await this.checkTopic(b));
+        case "premium_interest": return json(this.premiumInterest(user));
         default: return json({ error: "unknown route" }, 404);
       }
     } catch (e) {
@@ -363,7 +374,8 @@ export class Hub extends DurableObject {
     const title = String(b.topicTitle || "").slice(0, 300);
     if (!fallbackId) throw fail("topic", 400);
     const side = b.side === "pro" || b.side === "con" ? b.side : "any";
-    return { any, topicId: any ? "*" : fallbackId, fallbackId, title, side };
+    const minutes = LIVE_MINUTES.includes(Number(b.minutes)) ? Number(b.minutes) : 10;
+    return { any, topicId: any ? "*" : fallbackId, fallbackId, title, side, minutes };
   }
 
   // чи підходять двоє одне одному, і якщо так — тема й сторони
@@ -394,11 +406,13 @@ export class Hub extends DurableObject {
     return best;
   }
 
-  matchWith(mode, user, best) {
+  matchWith(mode, user, best, me) {
     const { o, p } = best;
+    // у «Залі дискусій» — коротша з двох вибраних тривалостей
+    const total = mode === "live" ? Math.min(me.minutes, o.minutes || 10) * 60 * 1000 : TOTAL_MS.async;
     return this.createMatch(mode, p.topicId, p.topicTitle,
       p.oSide === "pro" ? o.user_id : user.id,
-      p.oSide === "pro" ? user.id : o.user_id);
+      p.oSide === "pro" ? user.id : o.user_id, total);
   }
 
   find(user, b) {
@@ -417,17 +431,17 @@ export class Hub extends DurableObject {
       const best = this.bestPartner(user, me, this.rows(
         `SELECT * FROM queue WHERE mode = 'live' AND match_id IS NULL AND user_id != ? ORDER BY ts ASC LIMIT 50`, user.id));
       if (best) {
-        const id = this.matchWith("live", user, best);
+        const id = this.matchWith("live", user, best, me);
         this.run(`UPDATE queue SET match_id = ? WHERE user_id = ? AND mode = 'live'`, id, best.o.user_id);
         this.run(`DELETE FROM queue WHERE user_id = ? AND mode = 'live'`, user.id);
         return { status: "matched", matchId: id };
       }
       if (mine) {
-        this.run(`UPDATE queue SET topic_id = ?, topic_title = ?, side = ?, fallback_id = ?, ts = ? WHERE user_id = ? AND mode = 'live'`,
-          me.topicId, me.title, me.side, me.fallbackId, now, user.id);
+        this.run(`UPDATE queue SET topic_id = ?, topic_title = ?, side = ?, fallback_id = ?, minutes = ?, ts = ? WHERE user_id = ? AND mode = 'live'`,
+          me.topicId, me.title, me.side, me.fallbackId, me.minutes, now, user.id);
       } else {
-        this.run(`INSERT INTO queue (user_id, mode, topic_id, topic_title, side, ts, fallback_id) VALUES (?, 'live', ?, ?, ?, ?, ?)`,
-          user.id, me.topicId, me.title, me.side, now, me.fallbackId);
+        this.run(`INSERT INTO queue (user_id, mode, topic_id, topic_title, side, ts, fallback_id, minutes) VALUES (?, 'live', ?, ?, ?, ?, ?, ?)`,
+          user.id, me.topicId, me.title, me.side, now, me.fallbackId, me.minutes);
       }
       return { status: "waiting" };
     }
@@ -437,7 +451,7 @@ export class Hub extends DurableObject {
     const best = this.bestPartner(user, me, this.rows(
       `SELECT * FROM queue WHERE mode = 'async' AND match_id IS NULL AND user_id != ? ORDER BY ts ASC LIMIT 300`, user.id));
     if (best) {
-      const id = this.matchWith("async", user, best);
+      const id = this.matchWith("async", user, best, me);
       this.run(`DELETE FROM queue WHERE user_id = ? AND mode = 'async' AND topic_id = ? AND side = ?`,
         best.o.user_id, best.o.topic_id, best.o.side);
       return { status: "matched", matchId: id };
@@ -459,12 +473,12 @@ export class Hub extends DurableObject {
     return { ok: true };
   }
 
-  createMatch(mode, topicId, topicTitle, pro, con) {
+  createMatch(mode, topicId, topicTitle, pro, con, totalMs = TOTAL_MS[mode]) {
     const id = crypto.randomUUID().slice(0, 12);
     const now = Date.now();
-    this.run(`INSERT INTO matches (id, mode, topic_id, topic_title, status, pro, con, created, updated, deadline)
-              VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
-      id, mode, topicId, topicTitle, pro, con, now, now, now + TURN_MS[mode]);
+    this.run(`INSERT INTO matches (id, mode, topic_id, topic_title, status, pro, con, created, updated, deadline, ends_at)
+              VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)`,
+      id, mode, topicId, topicTitle, pro, con, now, now, now + TURN_MS[mode], now + totalMs);
     return id;
   }
 
@@ -472,8 +486,18 @@ export class Hub extends DurableObject {
   count(matchId) { return this.row(`SELECT COUNT(*) AS n FROM messages WHERE match_id = ?`, matchId).n; }
   turnSide(count) { return count % 2 === 0 ? "pro" : "con"; }
 
+  endsAt(m) { return m.ends_at || (m.created + TOTAL_MS[m.mode]); }
+
   checkDeadline(m) {
-    if (m.status !== "active" || Date.now() <= m.deadline) return;
+    if (m.status !== "active") return;
+    const now = Date.now();
+    // час усього спору вийшов — до суддів (якщо обидва встигли висловитись)
+    if (now > this.endsAt(m) && this.count(m.id) >= 2) {
+      m.status = "finished";
+      this.run(`UPDATE matches SET status = 'finished', updated = ? WHERE id = ?`, now, m.id);
+      return;
+    }
+    if (now <= m.deadline) return;
     const late = this.turnSide(this.count(m.id));
     m.status = "finished";
     m.forfeit = late === "pro" ? m.pro : m.con;
@@ -532,9 +556,10 @@ export class Hub extends DurableObject {
     return {
       id: m.id, mode: m.mode, topicId: m.topic_id, topicTitle, status: m.status,
       yourSide: mySide, opponentNick: opp ? opp.nick : "?",
-      messages: out, round: Math.min(3, Math.floor(count / 2) + 1),
+      messages: out, round: Math.min(3, Math.floor(count / 2) + 1), count,
       yourTurn: m.status === "active" && this.turnSide(count) === mySide,
-      msLeft: m.status === "active" ? Math.max(0, m.deadline - Date.now()) : 0,
+      msLeft: m.status === "active" ? Math.max(0, Math.min(m.deadline, this.endsAt(m)) - Date.now()) : 0,
+      msLeftTotal: m.status === "active" ? Math.max(0, this.endsAt(m) - Date.now()) : 0,
       result, blocked: this.isBlocked(user.id, oppId),
     };
   }
@@ -555,7 +580,7 @@ export class Hub extends DurableObject {
     if (fresh.status !== "active" || this.count(m.id) !== count) throw fail("conflict", 409);
     const now = Date.now();
     this.run(`INSERT INTO messages (match_id, user_id, text, lang, ts) VALUES (?, ?, ?, ?, ?)`, m.id, user.id, t, user.lang, now);
-    if (count + 1 >= TURNS) {
+    if (count + 1 >= MAX_MESSAGES || now >= this.endsAt(m)) {
       this.run(`UPDATE matches SET status = 'finished', updated = ? WHERE id = ?`, now, m.id);
     } else {
       this.run(`UPDATE matches SET updated = ?, deadline = ? WHERE id = ?`, now, now + TURN_MS[m.mode], m.id);
@@ -619,6 +644,12 @@ export class Hub extends DurableObject {
     return this.block(user, b);
   }
 
+  // ---------- Преміум: поки лише рахуємо, скільки людей хочуть ----------
+  premiumInterest(user) {
+    this.run(`INSERT OR IGNORE INTO premium_interest (user_id, ts) VALUES (?, ?)`, user.id, Date.now());
+    return { ok: true };
+  }
+
   // ---------- власна тема ----------
   async checkTopic(b) {
     const t = String(b.text || "").trim().replace(/\s+/g, " ");
@@ -650,6 +681,7 @@ export class Hub extends DurableObject {
       this.run(`DELETE FROM matches WHERE id = ?`, mid);
     }
     this.run(`DELETE FROM queue WHERE user_id = ?`, id);
+    this.run(`DELETE FROM premium_interest WHERE user_id = ?`, id);
     this.run(`DELETE FROM blocks WHERE blocker = ? OR blocked = ?`, id, id);
     this.run(`DELETE FROM reports WHERE reporter = ? OR reported = ?`, id, id);
     this.run(`UPDATE ai_reports SET user_id = NULL WHERE user_id = ?`, id);
