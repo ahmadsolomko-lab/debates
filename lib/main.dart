@@ -1,4 +1,4 @@
-// Debatos — версія 0.14. Весь застосунок в одному файлі.
+// Debatos — версія 0.14.2. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -774,7 +774,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Забагато дій за короткий час. Зачекай хвилинку.',
     'aiLeftPremium': 'Дебатів з AI цього місяця: {n} з {m}',
     'aiFreeUsedTitle': 'Безкоштовні дебати з AI закінчились',
-    'aiFreeUsedBody': 'Ти провів свої 3 безкоштовні дебати з AI. Далі — за перегляд 2 коротких реклам (з’явиться найближчим часом) або з Преміумом. Дебати з людьми — без обмежень.',
+    'aiFreeUsedBody': 'Ти провів свої 3 безкоштовні дебати з AI. Далі — за перегляд 2 реклам (з’явиться найближчим часом) або з Преміумом. Дебати з людьми — без обмежень.',
     'aiPoolTitle': 'AI на сьогодні відпочиває',
     'aiPoolBody': 'Безкоштовні дебати з AI на сьогодні вже розібрали. Повертайся завтра або спробуй Преміум. Дебати з людьми працюють як завжди.',
     'judgesBusy': 'Безкоштовні судді на сьогодні зайняті. Вердикт буде доступний завтра — дебати збережено. З Преміумом — без черги.',
@@ -787,6 +787,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'Такого промокоду немає. Перевір, чи правильно введено.',
     'promoUsedUp': 'Цей промокод уже використали максимальну кількість разів.',
     'premiumActive': 'Преміум активний',
+    'aiAfterFree': 'Після них — дебати з AI за перегляд 2 реклам або з Преміумом.',
+    'lastFreeTitle': 'Останні безкоштовні дебати з AI',
+    'lastFreeBody': 'Це твої останні безкоштовні дебати з AI. Далі — за перегляд 2 реклам або з Преміумом. Дебати з людьми лишаються без обмежень.',
   },
   'de': {
     'appTitle': 'Debatos',
@@ -980,7 +983,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Zu viele Aktionen in kurzer Zeit. Warte einen Moment.',
     'aiLeftPremium': 'KI-Debatten diesen Monat: {n} von {m}',
     'aiFreeUsedTitle': 'Kostenlose KI-Debatten aufgebraucht',
-    'aiFreeUsedBody': 'Du hast deine 3 kostenlosen KI-Debatten genutzt. Weiter geht es mit 2 kurzen Werbevideos (kommt bald) oder mit Premium. Debatten mit Menschen sind unbegrenzt.',
+    'aiFreeUsedBody': 'Du hast deine 3 kostenlosen KI-Debatten genutzt. Weiter geht es mit 2 Werbevideos (kommt bald) oder mit Premium. Debatten mit Menschen sind unbegrenzt.',
     'aiPoolTitle': 'Die KI ruht sich für heute aus',
     'aiPoolBody': 'Die kostenlosen KI-Debatten für heute sind vergeben. Komm morgen wieder oder probiere Premium. Debatten mit Menschen laufen wie immer.',
     'judgesBusy': 'Die kostenlosen Richter sind heute ausgelastet. Das Urteil gibt es morgen – die Debatte ist gespeichert. Mit Premium ohne Warteschlange.',
@@ -993,6 +996,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'Diesen Code gibt es nicht. Prüfe die Eingabe.',
     'promoUsedUp': 'Dieser Code wurde bereits zu oft verwendet.',
     'premiumActive': 'Premium ist aktiv',
+    'aiAfterFree': 'Danach: KI-Debatten gegen 2 Werbevideos oder mit Premium.',
+    'lastFreeTitle': 'Letzte kostenlose KI-Debatte',
+    'lastFreeBody': 'Das ist deine letzte kostenlose KI-Debatte. Danach geht es mit 2 Werbevideos oder mit Premium weiter. Debatten mit Menschen bleiben unbegrenzt.',
   },
   'en': {
     'appTitle': 'Debatos',
@@ -1186,7 +1192,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Too many actions in a short time. Please wait a minute.',
     'aiLeftPremium': 'AI debates this month: {n} of {m}',
     'aiFreeUsedTitle': 'Free AI debates used up',
-    'aiFreeUsedBody': 'You have used your 3 free AI debates. Next ones will be available for watching 2 short ads (coming soon) or with Premium. Debates with people are unlimited.',
+    'aiFreeUsedBody': 'You have used your 3 free AI debates. Next ones will be available for watching 2 ads (coming soon) or with Premium. Debates with people are unlimited.',
     'aiPoolTitle': 'The AI is resting for today',
     'aiPoolBody': 'Today’s free AI debates are taken. Come back tomorrow or try Premium. Debates with people work as usual.',
     'judgesBusy': 'The free judges are busy for today. The verdict will be available tomorrow — your debate is saved. With Premium there is no queue.',
@@ -1199,6 +1205,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'This code doesn’t exist. Check that it’s typed correctly.',
     'promoUsedUp': 'This code has already been used the maximum number of times.',
     'premiumActive': 'Premium is active',
+    'aiAfterFree': 'After that: AI debates for watching 2 ads, or with Premium.',
+    'lastFreeTitle': 'Your last free AI debate',
+    'lastFreeBody': 'This is your last free AI debate. After it, AI debates are available for watching 2 ads or with Premium. Debates with people stay unlimited.',
   },
   'es': {
     'appTitle': 'Debatos',
@@ -1393,7 +1402,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Demasiadas acciones en poco tiempo. Espera un minuto.',
     'aiLeftPremium': 'Debates con IA este mes: {n} de {m}',
     'aiFreeUsedTitle': 'Debates gratis con IA agotados',
-    'aiFreeUsedBody': 'Has usado tus 3 debates gratis con la IA. Los siguientes, viendo 2 anuncios cortos (muy pronto) o con Premium. Los debates con personas son ilimitados.',
+    'aiFreeUsedBody': 'Has usado tus 3 debates gratis con la IA. Los siguientes, viendo 2 anuncios (muy pronto) o con Premium. Los debates con personas son ilimitados.',
     'aiPoolTitle': 'La IA descansa por hoy',
     'aiPoolBody': 'Los debates gratis con IA de hoy ya se han agotado. Vuelve mañana o prueba Premium. Los debates con personas funcionan como siempre.',
     'judgesBusy': 'Los jueces gratuitos están ocupados hoy. El veredicto estará disponible mañana; el debate está guardado. Con Premium, sin espera.',
@@ -1406,6 +1415,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'Ese código no existe. Comprueba que esté bien escrito.',
     'promoUsedUp': 'Este código ya se ha usado el máximo de veces.',
     'premiumActive': 'Premium activo',
+    'aiAfterFree': 'Después: debates con IA viendo 2 anuncios o con Premium.',
+    'lastFreeTitle': 'Tu último debate gratis con IA',
+    'lastFreeBody': 'Es tu último debate gratis con la IA. Después, viendo 2 anuncios o con Premium. Los debates con personas siguen siendo ilimitados.',
   },
   'fr': {
     'appTitle': 'Debatos',
@@ -1595,7 +1607,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Trop d’actions en peu de temps. Attends une minute.',
     'aiLeftPremium': 'Débats contre l’IA ce mois-ci : {n} sur {m}',
     'aiFreeUsedTitle': 'Débats gratuits contre l’IA épuisés',
-    'aiFreeUsedBody': 'Tu as utilisé tes 3 débats gratuits contre l’IA. Les suivants : en regardant 2 courtes pubs (bientôt) ou avec Premium. Les débats avec des humains sont illimités.',
+    'aiFreeUsedBody': 'Tu as utilisé tes 3 débats gratuits contre l’IA. Les suivants : en regardant 2 pubs (bientôt) ou avec Premium. Les débats avec des humains sont illimités.',
     'aiPoolTitle': 'L’IA se repose pour aujourd’hui',
     'aiPoolBody': 'Les débats gratuits contre l’IA du jour sont pris. Reviens demain ou essaie Premium. Les débats avec des humains fonctionnent comme d’habitude.',
     'judgesBusy': 'Les juges gratuits sont occupés aujourd’hui. Le verdict sera disponible demain — le débat est enregistré. Avec Premium, sans file d’attente.',
@@ -1608,6 +1620,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'Ce code n’existe pas. Vérifie la saisie.',
     'promoUsedUp': 'Ce code a déjà été utilisé le nombre maximal de fois.',
     'premiumActive': 'Premium actif',
+    'aiAfterFree': 'Ensuite : débats contre l’IA en regardant 2 pubs, ou avec Premium.',
+    'lastFreeTitle': 'Ton dernier débat gratuit contre l’IA',
+    'lastFreeBody': 'C’est ton dernier débat gratuit contre l’IA. Ensuite : 2 pubs ou Premium. Les débats avec des humains restent illimités.',
   },
   'ru': {
     'appTitle': 'Debatos',
@@ -1797,7 +1812,7 @@ const Map<String, Map<String, String>> _strings = {
     'rateLimited': 'Слишком много действий за короткое время. Подожди минутку.',
     'aiLeftPremium': 'Дебатов с AI в этом месяце: {n} из {m}',
     'aiFreeUsedTitle': 'Бесплатные дебаты с AI закончились',
-    'aiFreeUsedBody': 'Ты провёл свои 3 бесплатных дебата с AI. Дальше — за просмотр 2 коротких реклам (скоро появится) или с Премиумом. Дебаты с людьми — без ограничений.',
+    'aiFreeUsedBody': 'Ты провёл свои 3 бесплатных дебата с AI. Дальше — за просмотр 2 реклам (скоро появится) или с Премиумом. Дебаты с людьми — без ограничений.',
     'aiPoolTitle': 'AI на сегодня отдыхает',
     'aiPoolBody': 'Бесплатные дебаты с AI на сегодня уже разобрали. Возвращайся завтра или попробуй Премиум. Дебаты с людьми работают как обычно.',
     'judgesBusy': 'Бесплатные судьи на сегодня заняты. Вердикт будет доступен завтра — дебаты сохранены. С Премиумом — без очереди.',
@@ -1810,6 +1825,9 @@ const Map<String, Map<String, String>> _strings = {
     'promoInvalid': 'Такого промокода нет. Проверь, правильно ли введено.',
     'promoUsedUp': 'Этот промокод уже использовали максимальное количество раз.',
     'premiumActive': 'Премиум активен',
+    'aiAfterFree': 'После них — дебаты с AI за просмотр 2 реклам или с Премиумом.',
+    'lastFreeTitle': 'Последние бесплатные дебаты с AI',
+    'lastFreeBody': 'Это твои последние бесплатные дебаты с AI. Дальше — за просмотр 2 реклам или с Премиумом. Дебаты с людьми остаются без ограничений.',
   },
 };
 
@@ -3288,6 +3306,25 @@ class TopicsScreen extends StatelessWidget {
             }
             return;
           }
+          // попередження перед останніми безкоштовними дебатами
+          if (!premiumUser && ((st['left'] as num?) ?? 0) == 1) {
+            final go = await showDialog<bool>(
+              context: context,
+              builder: (c) => AlertDialog(
+                title: Text(tr('lastFreeTitle')),
+                content: Text(tr('lastFreeBody')),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(c, false),
+                      child: Text(tr('cancel'))),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: Text(tr('ok'))),
+                ],
+              ),
+            );
+            if (go != true) return;
+          }
         } on ApiException catch (_) {
           // не вдалося перевірити — сервер однаково не пропустить понад ліміт
         }
@@ -3383,13 +3420,24 @@ class TopicsScreen extends StatelessWidget {
                 builder: (context, snap) {
                   final d = snap.data;
                   if (d == null) return const SizedBox.shrink();
+                  final premiumUser = d['premium'] == true;
                   return Padding(
                     padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      tr(d['premium'] == true ? 'aiLeftPremium' : 'aiLeft',
-                          {'n': '${d['left']}', 'm': '${d['limit']}'}),
-                      style: const TextStyle(
-                          color: AppColors.goldText, fontWeight: FontWeight.w700),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr(premiumUser ? 'aiLeftPremium' : 'aiLeft',
+                              {'n': '${d['left']}', 'm': '${d['limit']}'}),
+                          style: const TextStyle(
+                              color: AppColors.goldText,
+                              fontWeight: FontWeight.w700),
+                        ),
+                        if (!premiumUser)
+                          Text(tr('aiAfterFree'),
+                              style: const TextStyle(
+                                  color: AppColors.textMuted, fontSize: 13)),
+                      ],
                     ),
                   );
                 },
