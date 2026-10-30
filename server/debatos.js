@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v8.1 (durations)";
+const VERSION = "v9 (history)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
@@ -287,6 +287,8 @@ export class Hub extends DurableObject {
     // v8: тривалість спору, яку вибрала людина, і інтерес до Преміуму
     try { this.sql.exec(`ALTER TABLE queue ADD COLUMN minutes INTEGER`); } catch { /* уже є */ }
     this.sql.exec(`CREATE TABLE IF NOT EXISTS premium_interest (user_id TEXT PRIMARY KEY, ts INTEGER)`);
+    // v9: людина може прибрати завершені дебати зі своєї історії (у суперника вони лишаються)
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS hidden_matches (user_id TEXT, match_id TEXT, PRIMARY KEY (user_id, match_id))`);
   }
 
   rows(q, ...a) { return this.sql.exec(q, ...a).toArray(); }
@@ -322,6 +324,7 @@ export class Hub extends DurableObject {
         case "block": return json(this.block(user, b));
         case "topic": return json(await this.checkTopic(b));
         case "premium_interest": return json(this.premiumInterest(user));
+        case "hide_match": return json(this.hideMatch(user, b));
         default: return json({ error: "unknown route" }, 404);
       }
     } catch (e) {
@@ -346,7 +349,9 @@ export class Hub extends DurableObject {
   // ---------- список моїх дебатів ----------
   me(user) {
     const list = this.rows(
-      `SELECT * FROM matches WHERE pro = ? OR con = ? ORDER BY updated DESC LIMIT 30`, user.id, user.id);
+      `SELECT * FROM matches WHERE (pro = ? OR con = ?)
+         AND id NOT IN (SELECT match_id FROM hidden_matches WHERE user_id = ?)
+       ORDER BY updated DESC LIMIT 30`, user.id, user.id, user.id);
     const matches = list.map((m) => {
       this.checkDeadline(m);
       const count = this.count(m.id);
@@ -644,6 +649,14 @@ export class Hub extends DurableObject {
     return this.block(user, b);
   }
 
+  // ---------- прибрати дебати з власної історії ----------
+  hideMatch(user, b) {
+    const m = this.getMatch(user, b.matchId);
+    if (m.status === "active") throw fail("active", 409);
+    this.run(`INSERT OR IGNORE INTO hidden_matches (user_id, match_id) VALUES (?, ?)`, user.id, m.id);
+    return { ok: true };
+  }
+
   // ---------- Преміум: поки лише рахуємо, скільки людей хочуть ----------
   premiumInterest(user) {
     this.run(`INSERT OR IGNORE INTO premium_interest (user_id, ts) VALUES (?, ?)`, user.id, Date.now());
@@ -679,6 +692,7 @@ export class Hub extends DurableObject {
       this.run(`DELETE FROM verdicts WHERE match_id = ?`, mid);
       this.run(`DELETE FROM topic_tr WHERE match_id = ?`, mid);
       this.run(`DELETE FROM matches WHERE id = ?`, mid);
+      this.run(`DELETE FROM hidden_matches WHERE match_id = ?`, mid);
     }
     this.run(`DELETE FROM queue WHERE user_id = ?`, id);
     this.run(`DELETE FROM premium_interest WHERE user_id = ?`, id);
