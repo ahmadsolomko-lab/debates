@@ -1,4 +1,4 @@
-// Debatos — версія 0.8.4. Весь застосунок в одному файлі.
+// Debatos — версія 0.10. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -15,6 +15,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 const String aiServerUrl = 'https://debatos-ai.ahmadsolomko.workers.dev';
 
 const int debateRounds = 3;
+
+/// Тривалість дебатів (хвилини) для «Залу дискусій» і дебатів з AI.
+const List<int> kDurations = [5, 10, 15, 30];
+final ValueNotifier<int> debateMinutes = ValueNotifier<int>(10);
 
 // ===================== main =====================
 Future<void> main() async {
@@ -635,7 +639,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'Нікнейм має містити від 2 до 20 символів',
     'nickRejected': 'Такий нікнейм не можна використати. Спробуй інший.',
     'registerError': 'Не вдалося створити акаунт. Перевір інтернет і спробуй ще раз.',
-    'rouletteTitle': 'Чат-рулетка',
+    'rouletteTitle': 'Зал дискусій',
     'rouletteSub': 'Випадковий суперник — просто зараз',
     'myDebates': 'Мої дебати',
     'noDebates': 'Поки порожньо. Почни дебати з людиною!',
@@ -735,6 +739,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'Тема має бути від 10 до 150 символів',
     'topicRejected': 'Таку тему не можна використати. Сформулюй інакше, без образ і контактів.',
     'ok': 'Далі',
+    'replyHint': 'Відповідь — твій аргумент…',
+    'debateLeft': 'До кінця: {t}',
+    'hShort': 'год',
+    'duration': 'Тривалість',
+    'minShort': 'хв',
+    'durationHint': 'Коли час скінчиться, дебати підуть до суддів.',
+    'premiumTitle': 'Преміум',
+    'premiumSub': 'Більше можливостей для справжніх ораторів',
+    'premiumSoon': 'Скоро',
+    'premiumIntro': 'Преміум з\'явиться в одному з наступних оновлень. Ось що ми готуємо:',
+    'perk1': 'Сильніший AI-суддя з цитатами з твоїх аргументів',
+    'perk2': 'Апеляція: попроси суддів переглянути вердикт',
+    'perk3': 'Довші дебати — до 60 хвилин',
+    'perk4': 'Статистика й поради, як сперечатися краще',
+    'perk5': 'Без обмежень на дебати з AI',
+    'premiumWant': 'Хочу Преміум',
+    'premiumThanks': 'Дякуємо! Ти серед перших, хто чекає на Преміум.',
   },
   'de': {
     'appTitle': 'Debatos',
@@ -792,7 +813,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'Der Nickname muss 2 bis 20 Zeichen lang sein',
     'nickRejected': 'Dieser Nickname ist nicht erlaubt. Versuch einen anderen.',
     'registerError': 'Konto konnte nicht erstellt werden. Prüfe deine Internetverbindung und versuch es erneut.',
-    'rouletteTitle': 'Chat-Roulette',
+    'rouletteTitle': 'Diskussionssaal',
     'rouletteSub': 'Zufälliger Gegner – sofort',
     'myDebates': 'Meine Debatten',
     'noDebates': 'Noch leer. Starte eine Debatte mit einem Menschen!',
@@ -893,6 +914,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'Das Thema muss 10 bis 150 Zeichen lang sein',
     'topicRejected': 'Dieses Thema ist nicht erlaubt. Formuliere es ohne Beleidigungen und Kontakte.',
     'ok': 'Weiter',
+    'replyHint': 'Erwiderung – dein Argument…',
+    'debateLeft': 'Noch {t}',
+    'hShort': 'Std.',
+    'duration': 'Dauer',
+    'minShort': 'Min.',
+    'durationHint': 'Wenn die Zeit abläuft, geht die Debatte an die Richter.',
+    'premiumTitle': 'Premium',
+    'premiumSub': 'Mehr Möglichkeiten für echte Redner',
+    'premiumSoon': 'Bald',
+    'premiumIntro': 'Premium kommt mit einem der nächsten Updates. Das bereiten wir vor:',
+    'perk1': 'Stärkerer KI-Richter mit Zitaten aus deinen Argumenten',
+    'perk2': 'Berufung: lass das Urteil neu prüfen',
+    'perk3': 'Längere Debatten – bis zu 60 Minuten',
+    'perk4': 'Statistiken und Tipps, wie du besser debattierst',
+    'perk5': 'Unbegrenzte Debatten mit der KI',
+    'premiumWant': 'Ich will Premium',
+    'premiumThanks': 'Danke! Du gehörst zu den Ersten, die auf Premium warten.',
   },
   'en': {
     'appTitle': 'Debatos',
@@ -950,7 +988,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'Nickname must be 2 to 20 characters long',
     'nickRejected': 'This nickname is not allowed. Try another one.',
     'registerError': 'Could not create an account. Check your internet connection and try again.',
-    'rouletteTitle': 'Chat roulette',
+    'rouletteTitle': 'Discussion hall',
     'rouletteSub': 'Random opponent – right now',
     'myDebates': 'My debates',
     'noDebates': 'Nothing here yet. Start a debate with a human!',
@@ -1051,6 +1089,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'The topic must be 10 to 150 characters long',
     'topicRejected': 'This topic is not allowed. Rephrase it without insults or contact details.',
     'ok': 'Next',
+    'replyHint': 'Reply — your argument…',
+    'debateLeft': '{t} left',
+    'hShort': 'h',
+    'duration': 'Duration',
+    'minShort': 'min',
+    'durationHint': 'When time runs out, the debate goes to the judges.',
+    'premiumTitle': 'Premium',
+    'premiumSub': 'More for true orators',
+    'premiumSoon': 'Soon',
+    'premiumIntro': 'Premium is coming in one of the next updates. Here is what we are preparing:',
+    'perk1': 'A stronger AI judge that quotes your arguments',
+    'perk2': 'Appeal: ask the judges to review the verdict',
+    'perk3': 'Longer debates — up to 60 minutes',
+    'perk4': 'Stats and tips to debate better',
+    'perk5': 'Unlimited debates against the AI',
+    'premiumWant': 'I want Premium',
+    'premiumThanks': 'Thank you! You are among the first waiting for Premium.',
   },
   'es': {
     'appTitle': 'Debatos',
@@ -1109,7 +1164,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'El apodo debe tener entre 2 y 20 caracteres',
     'nickRejected': 'Ese apodo no está permitido. Prueba con otro.',
     'registerError': 'No se pudo crear la cuenta. Revisa tu conexión e inténtalo de nuevo.',
-    'rouletteTitle': 'Chat ruleta',
+    'rouletteTitle': 'Sala de debate',
     'rouletteSub': 'Rival al azar, ahora mismo',
     'myDebates': 'Mis debates',
     'noDebates': 'Aún no hay nada. ¡Empieza un debate con una persona!',
@@ -1210,6 +1265,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'El tema debe tener entre 10 y 150 caracteres',
     'topicRejected': 'Este tema no está permitido. Reformúlalo sin insultos ni contactos.',
     'ok': 'Siguiente',
+    'replyHint': 'Réplica: tu argumento…',
+    'debateLeft': 'Quedan {t}',
+    'hShort': 'h',
+    'duration': 'Duración',
+    'minShort': 'min',
+    'durationHint': 'Cuando se acabe el tiempo, el debate pasa a los jueces.',
+    'premiumTitle': 'Premium',
+    'premiumSub': 'Más para verdaderos oradores',
+    'premiumSoon': 'Pronto',
+    'premiumIntro': 'Premium llegará en una de las próximas actualizaciones. Esto es lo que preparamos:',
+    'perk1': 'Un juez de IA más potente que cita tus argumentos',
+    'perk2': 'Apelación: pide a los jueces revisar el veredicto',
+    'perk3': 'Debates más largos: hasta 60 minutos',
+    'perk4': 'Estadísticas y consejos para debatir mejor',
+    'perk5': 'Debates ilimitados contra la IA',
+    'premiumWant': 'Quiero Premium',
+    'premiumThanks': '¡Gracias! Estás entre los primeros que esperan Premium.',
   },
   'fr': {
     'appTitle': 'Debatos',
@@ -1265,7 +1337,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'Le pseudo doit contenir de 2 à 20 caractères',
     'nickRejected': 'Ce pseudo n’est pas autorisé. Essaie-en un autre.',
     'registerError': 'Impossible de créer le compte. Vérifie ta connexion et réessaie.',
-    'rouletteTitle': 'Chat-roulette',
+    'rouletteTitle': 'Salle de débat',
     'rouletteSub': 'Un adversaire au hasard — tout de suite',
     'myDebates': 'Mes débats',
     'noDebates': 'Rien pour l’instant. Lance un débat avec un humain !',
@@ -1364,6 +1436,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'Le sujet doit contenir de 10 à 150 caractères',
     'topicRejected': 'Ce sujet n’est pas autorisé. Reformule-le sans insultes ni coordonnées.',
     'ok': 'Suivant',
+    'replyHint': 'Réponse — ton argument…',
+    'debateLeft': 'Encore {t}',
+    'hShort': 'h',
+    'duration': 'Durée',
+    'minShort': 'min',
+    'durationHint': 'Quand le temps est écoulé, le débat passe aux juges.',
+    'premiumTitle': 'Premium',
+    'premiumSub': 'Plus de possibilités pour les vrais orateurs',
+    'premiumSoon': 'Bientôt',
+    'premiumIntro': 'Premium arrive dans une prochaine mise à jour. Voici ce que nous préparons :',
+    'perk1': 'Un juge IA plus puissant qui cite tes arguments',
+    'perk2': 'Appel : demande aux juges de revoir le verdict',
+    'perk3': 'Débats plus longs — jusqu’à 60 minutes',
+    'perk4': 'Statistiques et conseils pour mieux débattre',
+    'perk5': 'Débats illimités contre l’IA',
+    'premiumWant': 'Je veux Premium',
+    'premiumThanks': 'Merci ! Tu fais partie des premiers à attendre Premium.',
   },
   'ru': {
     'appTitle': 'Debatos',
@@ -1419,7 +1508,7 @@ const Map<String, Map<String, String>> _strings = {
     'nickError': 'Ник должен быть от 2 до 20 символов',
     'nickRejected': 'Такой ник нельзя использовать. Попробуй другой.',
     'registerError': 'Не удалось создать аккаунт. Проверь интернет и попробуй ещё раз.',
-    'rouletteTitle': 'Чат-рулетка',
+    'rouletteTitle': 'Зал дискуссий',
     'rouletteSub': 'Случайный соперник — прямо сейчас',
     'myDebates': 'Мои дебаты',
     'noDebates': 'Пока пусто. Начни дебаты с человеком!',
@@ -1518,6 +1607,23 @@ const Map<String, Map<String, String>> _strings = {
     'topicTooShort': 'Тема должна быть от 10 до 150 символов',
     'topicRejected': 'Такую тему нельзя использовать. Сформулируй иначе, без оскорблений и контактов.',
     'ok': 'Далее',
+    'replyHint': 'Ответ — твой аргумент…',
+    'debateLeft': 'До конца: {t}',
+    'hShort': 'ч',
+    'duration': 'Длительность',
+    'minShort': 'мин',
+    'durationHint': 'Когда время закончится, дебаты уйдут к судьям.',
+    'premiumTitle': 'Премиум',
+    'premiumSub': 'Больше возможностей для настоящих ораторов',
+    'premiumSoon': 'Скоро',
+    'premiumIntro': 'Премиум появится в одном из следующих обновлений. Вот что мы готовим:',
+    'perk1': 'Более сильный AI-судья с цитатами из твоих аргументов',
+    'perk2': 'Апелляция: попроси судей пересмотреть вердикт',
+    'perk3': 'Более длинные дебаты — до 60 минут',
+    'perk4': 'Статистика и советы, как спорить лучше',
+    'perk5': 'Без ограничений на дебаты с AI',
+    'premiumWant': 'Хочу Премиум',
+    'premiumThanks': 'Спасибо! Ты среди первых, кто ждёт Премиум.',
   },
 };
 
@@ -2191,7 +2297,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 12),
               _ModeCard(
-                icon: Icons.casino_rounded,
+                icon: Icons.forum_rounded,
                 title: tr('rouletteTitle'),
                 subtitle: tr('rouletteSub'),
                 onTap: () => _needOnline(() => _open(const TopicsScreen(mode: 'live'))),
@@ -2203,6 +2309,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 subtitle: tr('mode3dSub'),
                 onTap: () =>
                     _needOnline(() => _open(const TopicsScreen(mode: 'async'))),
+              ),
+              const SizedBox(height: 12),
+              _ModeCard(
+                icon: Icons.workspace_premium_rounded,
+                title: tr('premiumTitle'),
+                subtitle: tr('premiumSub'),
+                badge: tr('premiumSoon'),
+                onTap: () => _open(const PremiumScreen()),
               ),
               if (Session.online) ...[
                 const SizedBox(height: 28),
@@ -2557,6 +2671,100 @@ class _LanguagePanel extends StatelessWidget {
   }
 }
 
+// ===================== Преміум =====================
+class PremiumScreen extends StatefulWidget {
+  const PremiumScreen({super.key});
+
+  @override
+  State<PremiumScreen> createState() => _PremiumScreenState();
+}
+
+class _PremiumScreenState extends State<PremiumScreen> {
+  bool _sent = false;
+
+  Future<void> _want() async {
+    setState(() => _sent = true);
+    if (Session.online) {
+      try {
+        await Api.call('premium_interest', {});
+      } on ApiException catch (_) {
+        // не страшно — це лише лічильник інтересу
+      }
+    }
+    if (mounted) showSnack(context, tr('premiumThanks'));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const perks = [
+      (Icons.gavel_rounded, 'perk1'),
+      (Icons.replay_rounded, 'perk2'),
+      (Icons.timer_outlined, 'perk3'),
+      (Icons.insights_rounded, 'perk4'),
+      (Icons.all_inclusive_rounded, 'perk5'),
+    ];
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('premiumTitle'))),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+        children: [
+          const Center(child: LaurelWreath(size: 96)),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(tr('premiumTitle'),
+                style: classic(fontSize: 34, color: AppColors.goldText)),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withAlpha(40),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Text(tr('premiumSoon'),
+                  style: const TextStyle(
+                      color: AppColors.goldText, fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Meander(),
+          const SizedBox(height: 16),
+          Text(tr('premiumIntro'), style: const TextStyle(height: 1.4)),
+          const SizedBox(height: 12),
+          for (final p in perks)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(p.$1, color: AppColors.gold),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(tr(p.$2),
+                        style: const TextStyle(height: 1.35, fontSize: 16)),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 54,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.gold),
+              onPressed: _sent ? null : _want,
+              icon: const Icon(Icons.workspace_premium_rounded),
+              label: Text(tr('premiumWant'),
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ===================== вибір теми =====================
 class TopicsScreen extends StatelessWidget {
   /// 'ai' — проти AI, 'async' — «3 дні» з людиною, 'live' — чат-рулетка.
@@ -2673,6 +2881,7 @@ class TopicsScreen extends StatelessWidget {
           builder: (_) => DebateScreen(
             topic: topic,
             userSide: side == 'con' ? Side.con : Side.pro,
+            minutes: debateMinutes.value,
           ),
         ),
       );
@@ -2684,6 +2893,7 @@ class TopicsScreen extends StatelessWidget {
           builder: (_) => RouletteScreen(
             topic: anyTopic ? null : topic,
             side: side,
+            minutes: debateMinutes.value,
           ),
         ),
       );
@@ -2723,6 +2933,35 @@ class TopicsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          if (mode != 'async') ...[
+            Text(tr('duration'),
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<int>(
+              valueListenable: debateMinutes,
+              builder: (context, minutes, _) => Wrap(
+                spacing: 8,
+                children: [
+                  for (final m in kDurations)
+                    ChoiceChip(
+                      label: Text('$m ${tr('minShort')}'),
+                      selected: minutes == m,
+                      onSelected: (_) => debateMinutes.value = m,
+                      selectedColor: AppColors.accent,
+                      labelStyle: TextStyle(
+                        color: minutes == m ? AppColors.onAccent : AppColors.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      showCheckmark: false,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(tr('durationHint'),
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            const SizedBox(height: 14),
+          ],
           Material(
             color: AppColors.accent,
             shape: RoundedRectangleBorder(
@@ -2911,7 +3150,14 @@ class DebateScreen extends StatefulWidget {
   final Topic topic;
   final Side userSide;
 
-  const DebateScreen({super.key, required this.topic, required this.userSide});
+  final int minutes;
+
+  const DebateScreen({
+    super.key,
+    required this.topic,
+    required this.userSide,
+    this.minutes = 10,
+  });
 
   @override
   State<DebateScreen> createState() => _DebateScreenState();
@@ -2924,14 +3170,46 @@ class _DebateScreenState extends State<DebateScreen> {
   final List<DebateMessage> _messages = [];
   final String _lang = appLang.value;
 
-  int _round = 1;
   bool _aiThinking = false;
   bool _finished = false;
+  late final DateTime _endsAt =
+      DateTime.now().add(Duration(minutes: widget.minutes));
+  Timer? _clock;
+
+  /// Запобіжник: більше ходів AI-судді не подужають.
+  static const int _maxTurns = 10;
+
+  bool get _timeUp => !DateTime.now().isBefore(_endsAt);
+  int get _userTurns =>
+      _messages.where((m) => m.speaker == Speaker.user).length;
+  Duration get _left {
+    final d = _endsAt.difference(DateTime.now());
+    return d.isNegative ? Duration.zero : d;
+  }
+
+  /// 1 — вступ, 2 — відповіді, 3 — підсумок (остання хвилина або останній хід).
+  int get _stage {
+    if (_userTurns == 0) return 1;
+    if (_left.inSeconds < 60 || _userTurns >= _maxTurns - 1) return 3;
+    return 2;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _finished) return;
+      setState(() {
+        if (_timeUp && !_aiThinking) _finished = true;
+      });
+    });
+  }
 
   static const int _minLength = 20;
 
   @override
   void dispose() {
+    _clock?.cancel();
     _input.dispose();
     _scroll.dispose();
     super.dispose();
@@ -2957,7 +3235,7 @@ class _DebateScreenState extends State<DebateScreen> {
       lang: _lang,
       topic: widget.topic,
       aiSide: widget.userSide.opposite,
-      round: _round,
+      round: _stage,
       history: List.unmodifiable(_messages),
     );
     if (!mounted) return;
@@ -2971,11 +3249,7 @@ class _DebateScreenState extends State<DebateScreen> {
     setState(() {
       _messages.add(DebateMessage(speaker: Speaker.ai, text: reply.text));
       _aiThinking = false;
-      if (_round >= debateRounds) {
-        _finished = true;
-      } else {
-        _round++;
-      }
+      if (_timeUp || _userTurns >= _maxTurns) _finished = true;
     });
     _scrollToEnd();
   }
@@ -3057,8 +3331,18 @@ class _DebateScreenState extends State<DebateScreen> {
         title: Text(
           _finished
               ? tr('finished')
-              : tr('roundOf', {'n': '$_round', 'm': '$debateRounds'}),
+              : tr('debateLeft', {
+                  't': '${_left.inMinutes}:${(_left.inSeconds % 60).toString().padLeft(2, '0')}'
+                }),
         ),
+        actions: [
+          if (!_finished && !_aiThinking && _userTurns >= 1)
+            IconButton(
+              tooltip: tr('toJudges'),
+              icon: const Icon(Icons.gavel_rounded),
+              onPressed: () => setState(() => _finished = true),
+            ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -3114,7 +3398,9 @@ class _DebateScreenState extends State<DebateScreen> {
             else
               _InputBar(
                 controller: _input,
-                hint: tr('hint', {'round': tr('r$_round')}),
+                hint: _stage == 2
+                    ? tr('replyHint')
+                    : tr('hint', {'round': tr('r$_stage')}),
                 enabled: !_aiThinking,
                 onSend: _send,
               ),
@@ -3147,10 +3433,13 @@ class Session {
           ? lang
           : deviceLanguage();
       autoTranslate.value = p.getBool('autoTranslate') ?? true;
+      final mins = p.getInt('minutes');
+      if (mins != null && kDurations.contains(mins)) debateMinutes.value = mins;
     } catch (_) {
       // без збереження застосунок усе одно працює
     }
     appLang.addListener(() => _prefs?.setString('lang', appLang.value));
+    debateMinutes.addListener(() => _prefs?.setInt('minutes', debateMinutes.value));
     autoTranslate
         .addListener(() => _prefs?.setBool('autoTranslate', autoTranslate.value));
   }
@@ -3426,7 +3715,11 @@ class RouletteScreen extends StatefulWidget {
   /// 'pro', 'con' або 'any'
   final String side;
 
-  const RouletteScreen({super.key, this.topic, this.side = 'any'});
+  /// Бажана тривалість (хвилини)
+  final int minutes;
+
+  const RouletteScreen(
+      {super.key, this.topic, this.side = 'any', this.minutes = 10});
 
   @override
   State<RouletteScreen> createState() => _RouletteScreenState();
@@ -3488,6 +3781,7 @@ class _RouletteScreenState extends State<RouletteScreen> {
         'topicTitle': _topic.title,
         'topicAny': widget.topic == null,
         'side': widget.side,
+        'minutes': widget.minutes,
       });
       if (!mounted || _done) return;
       if (r['status'] == 'matched') {
@@ -3618,6 +3912,7 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
   bool _sending = false;
   bool _failed = false;
   int _msLeft = 0;
+  int _msLeftTotal = 0;
   int _lastCount = -1;
 
   @override
@@ -3625,8 +3920,11 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
     super.initState();
     _load();
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_msLeft > 0 && mounted) {
-        setState(() => _msLeft = max(0, _msLeft - 1000));
+      if ((_msLeft > 0 || _msLeftTotal > 0) && mounted) {
+        setState(() {
+          _msLeft = max(0, _msLeft - 1000);
+          _msLeftTotal = max(0, _msLeftTotal - 1000);
+        });
       }
     });
   }
@@ -3660,6 +3958,7 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
       setState(() {
         _m = r;
         _msLeft = (r['msLeft'] as num?)?.toInt() ?? 0;
+        _msLeftTotal = (r['msLeftTotal'] as num?)?.toInt() ?? 0;
         _failed = false;
       });
       if (count != _lastCount) {
@@ -3792,6 +4091,13 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
     return '$mm:$ss';
   }
 
+  /// Скільки лишилось до кінця всього спору: «72 год» або «8:41».
+  String _totalLeft(int ms) {
+    if (ms >= 3600 * 1000) return '${(ms / 3600000).ceil()} ${tr('hShort')}';
+    final s = (ms / 1000).ceil();
+    return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final m = _m;
@@ -3819,7 +4125,6 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
     final active = m['status'] == 'active';
     final yourTurn = m['yourTurn'] == true;
     final msgs = (m['messages'] as List?) ?? const [];
-    final round = (m['round'] as num?)?.toInt() ?? 1;
     final title = topicTitleFor(
         (m['topicId'] ?? '').toString(), (m['topicTitle'] ?? '').toString());
 
@@ -3827,7 +4132,8 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
     if (active && yourTurn) {
       bottom = _InputBar(
         controller: _input,
-        hint: tr('hint', {'round': tr('r$round')}),
+        // перше повідомлення — вступ, далі — відповіді
+        hint: msgs.isEmpty ? tr('hint', {'round': tr('r1')}) : tr('replyHint'),
         enabled: !_sending,
         onSend: _send,
       );
@@ -3893,7 +4199,7 @@ class _HumanMatchScreenState extends State<HumanMatchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(active
-            ? tr('roundOf', {'n': '$round', 'm': '$debateRounds'})
+            ? tr('debateLeft', {'t': _totalLeft(_msLeftTotal)})
             : tr('finished')),
         actions: [
           PopupMenuButton<String>(
