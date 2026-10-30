@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v10 (limits)";
+const VERSION = "v12 (promo)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
@@ -28,7 +28,17 @@ const MAX_MESSAGES = 40;
 const LIVE_MINUTES = [5, 10, 15, 30]; // вибір тривалості в «Залі дискусій»
 
 // Ліміти
-const AI_PER_DAY = { free: 3, premium: 30 }; // дебатів з AI на день
+// Гроші: безкоштовні користувачі живуть лише за рахунок безкоштовного денного запасу
+// Cloudflare (10 000 «нейронів»), Преміум — у межах того, що приносить підписка.
+const AI_FREE_TOTAL = 3;             // безкоштовних AI-дебатів на акаунт — назавжди
+const PREMIUM_AI_PER_MONTH = 120;    // AI-дебатів на місяць з Преміумом
+const FREE_POOL_PER_DAY = 9000;      // скільки «нейронів» на день віддаємо безкоштовним (із запасом)
+const COST = { debate: 1100, verdict: 800 };
+// Промокоди на Преміум. У коді лише SHA-256 від коду (репозиторій публічний), сам код знає тільки власник.
+// Щоб відкликати код — видали рядок (активовані акаунти втратять Преміум).
+const PROMO_CODES = [
+  { hash: "7ecde663c4c88371642fe7afa5f0e586c9286577ecc0cd1f8c076d251b539430", maxUses: 10, label: "family" },
+]; // оцінка вартості в «нейронах»
 const AI_REPLIES_PER_DEBATE = 12;            // відповідей AI в одних дебатах
 const RATE_PER_MINUTE = 150;                 // запитів одного акаунта за хвилину
 const REGISTER_PER_HOUR = 60;                // нових акаунтів з однієї мережі за годину // запобіжник: довші дебати судді не подужають
@@ -108,6 +118,17 @@ async function judgeTwice(env, lang, topic, entries, sideX) {
   return {
     logic: merge("logic"), evidence: merge("evidence"), rhetoric: merge("rhetoric"),
     tipX: ok[0].tipX, tipY: ok[0].tipY, passes: ok.length, model: ok[0].model,
+  };
+}
+
+// Переклад коментарів суддів іншою мовою (бали не змінюються).
+async function translateVerdict(env, r, from, to) {
+  const t = async (x) => (x ? (await translate(env, x, from, to)) || x : x);
+  const crit = async (c) => ({ ...c, noteX: await t(c.noteX), noteY: await t(c.noteY) });
+  return {
+    ...r,
+    logic: await crit(r.logic), evidence: await crit(r.evidence), rhetoric: await crit(r.rhetoric),
+    tipX: await t(r.tipX), tipY: await t(r.tipY),
   };
 }
 
@@ -300,6 +321,11 @@ export class Hub extends DurableObject {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS ai_usage (user_id TEXT, debate_id TEXT, day TEXT,
       replies INTEGER DEFAULT 0, judged INTEGER DEFAULT 0, PRIMARY KEY (user_id, debate_id))`);
     try { this.sql.exec(`ALTER TABLE users ADD COLUMN premium INTEGER DEFAULT 0`); } catch { /* уже є */ }
+    // v11: безкоштовні AI-дебати на акаунт і спільний денний безкоштовний запас
+    try { this.sql.exec(`ALTER TABLE users ADD COLUMN ai_free_used INTEGER DEFAULT 0`); } catch { /* уже є */ }
+    // v12: промокод, яким активовано Преміум (зберігається хеш)
+    try { this.sql.exec(`ALTER TABLE users ADD COLUMN promo TEXT`); } catch { /* уже є */ }
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS ai_pool (day TEXT PRIMARY KEY, used INTEGER)`);
     this.rate = new Map(); // лічильники лише в пам'яті — IP ніде не зберігаються
   }
 
@@ -324,6 +350,7 @@ export class Hub extends DurableObject {
       // видалити свої дані можна завжди, навіть із заблокованим акаунтом
       if (route === "delete_account") return json(this.deleteAccount(user));
       if (user.banned) return json({ error: "banned" }, 403);
+      if (!user.premium && user.promo && PROMO_CODES.some((p) => p.hash === user.promo)) user.premium = 1;
       if (!this.hit("u:" + user.id, RATE_PER_MINUTE, 60 * 1000)) return json({ error: "rate" }, 429);
       if (route === "ai") return await this.ai(user, b);
       if (LANGS[b.lang] && b.lang !== user.lang) {
@@ -344,6 +371,7 @@ export class Hub extends DurableObject {
         case "premium_interest": return json(this.premiumInterest(user));
         case "hide_match": return json(this.hideMatch(user, b));
         case "ai_status": return json(this.aiStatus(user));
+        case "promo": return json(await this.promo(user, b));
         default: return json({ error: "unknown route" }, 404);
       }
     } catch (e) {
@@ -386,7 +414,7 @@ export class Hub extends DurableObject {
     const waiting = this.rows(
       `SELECT topic_id, topic_title, side, ts FROM queue WHERE user_id = ? AND mode = 'async' AND match_id IS NULL ORDER BY ts DESC`,
       user.id).map((q) => ({ topicId: q.topic_id, topicTitle: q.topic_title, side: q.side, topicAny: q.topic_id === "*" }));
-    return { nick: user.nick, matches, waiting };
+    return { nick: user.nick, userId: user.id, matches, waiting };
   }
 
   // ---------- пошук суперника ----------
@@ -629,8 +657,14 @@ export class Hub extends DurableObject {
     const lang = user.lang;
     let data;
     const cached = this.row(`SELECT data FROM verdicts WHERE match_id = ? AND lang = ?`, m.id, lang);
+    const other = cached ? null : this.row(`SELECT lang, data FROM verdicts WHERE match_id = ? LIMIT 1`, m.id);
     if (cached) data = JSON.parse(cached.data);
-    else {
+    else if (other) {
+      // судді вже оцінили — ті самі бали для обох, лише перекладаємо коментарі
+      data = await translateVerdict(this.env, JSON.parse(other.data), other.lang, lang);
+      this.run(`INSERT OR REPLACE INTO verdicts (match_id, lang, data) VALUES (?, ?, ?)`, m.id, lang, JSON.stringify(data));
+    } else {
+      if (!user.premium && !this.poolTake(COST.verdict)) throw fail("ai_pool", 429);
       // X = сторона «ЗА», Y = «ПРОТИ». Мова повідомлень не важлива.
       const entries = msgs.map((x) => ({ who: x.user_id === m.pro ? "X" : "Y", text: x.text }));
       data = await judgeTwice(this.env, lang, m.topic_title, entries, "pro");
@@ -680,10 +714,48 @@ export class Hub extends DurableObject {
 
   today() { return new Date().toISOString().slice(0, 10); }
 
+  // ---------- промокод ----------
+  async promo(user, b) {
+    if (!this.hit("promo:" + user.id, 10, 60 * 60 * 1000)) throw fail("rate", 429); // від підбору
+    const code = String(b.code || "").trim().toUpperCase().slice(0, 40);
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code));
+    const hash = [...new Uint8Array(digest)].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const p = PROMO_CODES.find((c) => c.hash === hash);
+    if (!p) throw fail("promo_invalid", 400);
+    if (user.promo === hash) return { ok: true, premium: true };
+    const used = this.row(`SELECT COUNT(*) AS n FROM users WHERE promo = ?`, hash).n;
+    if (used >= p.maxUses) throw fail("promo_used_up", 409);
+    this.run(`UPDATE users SET promo = ? WHERE id = ?`, hash, user.id);
+    return { ok: true, premium: true };
+  }
+
+  // ---------- безкоштовний денний запас ----------
+  poolUsed() {
+    const r = this.row(`SELECT used FROM ai_pool WHERE day = ?`, this.today());
+    return r ? r.used : 0;
+  }
+  poolTake(cost) {
+    if (this.poolUsed() + cost > FREE_POOL_PER_DAY) return false;
+    this.run(`INSERT INTO ai_pool (day, used) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET used = used + ?`,
+      this.today(), cost, cost);
+    this.run(`DELETE FROM ai_pool WHERE day < ?`, new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10));
+    return true;
+  }
+  monthUsed(user) {
+    return this.row(`SELECT COUNT(*) AS n FROM ai_usage WHERE user_id = ? AND day >= ?`,
+      user.id, this.today().slice(0, 8) + "01").n;
+  }
+
   aiStatus(user) {
-    const limit = user.premium ? AI_PER_DAY.premium : AI_PER_DAY.free;
-    const used = this.row(`SELECT COUNT(*) AS n FROM ai_usage WHERE user_id = ? AND day = ?`, user.id, this.today()).n;
-    return { limit, used, left: Math.max(0, limit - used), premium: !!user.premium };
+    if (user.premium) {
+      const used = this.monthUsed(user);
+      return { premium: true, limit: PREMIUM_AI_PER_MONTH, used, left: Math.max(0, PREMIUM_AI_PER_MONTH - used), poolOpen: true };
+    }
+    const used = user.ai_free_used || 0;
+    return {
+      premium: false, limit: AI_FREE_TOTAL, used, left: Math.max(0, AI_FREE_TOTAL - used),
+      poolOpen: this.poolUsed() + COST.debate <= FREE_POOL_PER_DAY,
+    };
   }
 
   // ---------- дебати з AI ----------
@@ -705,9 +777,15 @@ export class Hub extends DurableObject {
       return json(asYouVsThem(r, "X"));
     }
     if (!u) {
-      const st = this.aiStatus(user);
-      if (st.left <= 0) throw fail("ai_limit", 429);
-      this.run(`DELETE FROM ai_usage WHERE day < ?`, new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10));
+      // нові дебати: Преміум — місячний ліміт; безкоштовно — 3 на акаунт і лише з денного запасу
+      if (user.premium) {
+        if (this.monthUsed(user) >= PREMIUM_AI_PER_MONTH) throw fail("ai_limit", 429);
+      } else {
+        if ((user.ai_free_used || 0) >= AI_FREE_TOTAL) throw fail("ai_free_used", 429);
+        if (!this.poolTake(COST.debate)) throw fail("ai_pool", 429);
+        this.run(`UPDATE users SET ai_free_used = ai_free_used + 1 WHERE id = ?`, user.id);
+      }
+      this.run(`DELETE FROM ai_usage WHERE day < ?`, new Date(Date.now() - 40 * 864e5).toISOString().slice(0, 10));
       this.run(`INSERT INTO ai_usage (user_id, debate_id, day) VALUES (?, ?, ?)`, user.id, debateId, this.today());
       u = { replies: 0 };
     }
