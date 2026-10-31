@@ -4,7 +4,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { PAGES } from "./pages.js";
 
-const VERSION = "v13.1 (groq)";
+const VERSION = "v13.2 (legal)";
 // Пошта для зв'язку на сторінках політики (порожньо — посилання на сторінку в Google Play)
 const SUPPORT_EMAIL = "";
 const MODELS = [
@@ -59,9 +59,15 @@ export default {
     if (request.method !== "POST") {
       const page = PAGES[url.pathname.replace(/\/+$/, "")];
       if (page) return html(page(url.searchParams.get("lang"), SUPPORT_EMAIL));
-      const ago = groqLast.at ? Math.round((Date.now() - groqLast.at) / 60000) + " min ago" : "no requests yet";
+      // стан Groq береться з Hub — саме там ідуть AI-запити
+      let st = groqLast;
+      try {
+        const hub = env.HUB.get(env.HUB.idFromName("main"));
+        st = await (await hub.fetch(new Request(url.origin + "/api/status", { method: "POST", body: "{}" }))).json();
+      } catch (e) { /* покажемо, що є */ }
+      const ago = st.at ? Math.round((Date.now() - st.at) / 60000) + " min ago" : "no requests yet";
       const groq = !env.GROQ_API_KEY ? "Groq: no key ❌"
-        : `Groq: key ✓ · last answer: ${groqLast.status === null ? "—" : groqLast.status === 200 ? "OK ✅" : "error " + groqLast.status + " ❌"} (${ago})`;
+        : `Groq: key ✓ · last answer: ${st.status === null || st.status === undefined ? "—" : st.status === 200 ? "OK ✅" : "error " + st.status + " ❌"} (${ago})`;
       return text(`Debates AI server works ✅ (judges v2, ${VERSION})\n${groq}`);
     }
     // дебати з AI — тільки для людей з акаунтом і з лімітами (перевіряє Hub)
@@ -401,6 +407,7 @@ export class Hub extends DurableObject {
     let b;
     try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
     try {
+      if (route === "status") return json(groqLast);
       if (route === "register") {
         const ip = request.headers.get("CF-Connecting-IP") || "unknown";
         if (!this.hit("reg:" + ip, REGISTER_PER_HOUR, 60 * 60 * 1000)) return json({ error: "rate" }, 429);
@@ -911,6 +918,7 @@ export class Hub extends DurableObject {
   aiReport(user, b) {
     const t = String(b.text || "").slice(0, 2000);
     if (!t) throw fail("empty", 400);
+    this.run(`DELETE FROM ai_reports WHERE ts < ?`, Date.now() - 365 * 864e5); // зберігаємо до 12 місяців
     this.run(`INSERT INTO ai_reports (user_id, lang, topic, text, reason, ts) VALUES (?, ?, ?, ?, ?, ?)`,
       user ? user.id : null, String(b.lang || "").slice(0, 5), String(b.topic || "").slice(0, 300), t,
       String(b.reason || "other").slice(0, 40), Date.now());
