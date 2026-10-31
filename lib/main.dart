@@ -1,4 +1,4 @@
-// Debatos — версія 0.14.2. Весь застосунок в одному файлі.
+// Debatos — версія 0.14.3. Весь застосунок в одному файлі.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -19,6 +19,9 @@ const int debateRounds = 3;
 /// Тривалість дебатів (хвилини) для «Залу дискусій» і дебатів з AI.
 const List<int> kDurations = [5, 10, 15, 30];
 final ValueNotifier<int> debateMinutes = ValueNotifier<int>(10);
+
+/// Збільшується після кожних дебатів з AI — лічильник безкоштовних оновлюється сам.
+final ValueNotifier<int> aiStatusTick = ValueNotifier<int>(0);
 
 // ===================== main =====================
 Future<void> main() async {
@@ -3415,7 +3418,10 @@ class TopicsScreen extends StatelessWidget {
             Text(tr('durationHint'),
                 style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
             if (mode == 'ai' && Session.online)
-              FutureBuilder<Map<String, dynamic>>(
+              ValueListenableBuilder<int>(
+                valueListenable: aiStatusTick,
+                builder: (context, tick, _) => FutureBuilder<Map<String, dynamic>>(
+                key: ValueKey(tick),
                 future: Api.call('ai_status', {}),
                 builder: (context, snap) {
                   final d = snap.data;
@@ -3441,6 +3447,7 @@ class TopicsScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
               ),
             const SizedBox(height: 14),
           ],
@@ -3691,6 +3698,8 @@ class _DebateScreenState extends State<DebateScreen> {
 
   @override
   void dispose() {
+    // лічильник безкоштовних AI-дебатів оновиться (після кадру, не під час dispose)
+    Future.microtask(() => aiStatusTick.value++);
     _clock?.cancel();
     _input.dispose();
     _scroll.dispose();
