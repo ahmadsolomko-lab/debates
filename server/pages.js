@@ -1,7 +1,7 @@
 // Публічні сторінки для Google Play: політика конфіденційності, умови, видалення акаунта.
 // Мови: en (основна), uk, de. Для інших — англійська.
 
-const UPDATED = "29.10.2026";
+const UPDATED = "31.10.2026";
 
 function contactLine(lang, email) {
   if (email) return `<a href="mailto:${email}">${email}</a>`;
@@ -52,7 +52,7 @@ function privacy(langIn, email) {
 <h2>On your device</h2>
 <p>The account key, nickname, language and settings are saved on your phone so that you stay signed in.</p>
 <h2>Who processes the data</h2>
-<p>The server and the AI models run on <b>Cloudflare</b> (Cloudflare, Inc.), which acts as our processor. Your texts are sent to these AI models for replies, translation, moderation and judging. Cloudflare may process data outside the EU; such transfers are covered by the EU Standard Contractual Clauses and the EU–U.S. Data Privacy Framework.</p>
+<p>The server runs on <b>Cloudflare</b> (Cloudflare, Inc.). Your texts are sent to AI models for replies, translation, moderation and judging; these models run at <b>Groq</b> (Groq, Inc., USA) and, as a fallback, at Cloudflare. Both act as our processors; Groq does not store the texts by default. Data may be processed outside the EU (in the USA); such transfers are covered by the EU Standard Contractual Clauses and, where applicable, the EU–U.S. Data Privacy Framework.</p>
 <h2>Why (legal basis)</h2>
 <p>To provide the app you asked for (Art. 6(1)(b) GDPR) and to keep debates safe through moderation and reports (Art. 6(1)(f) GDPR, our legitimate interest in a safe community).</p>
 <h2>How long</h2>
@@ -77,7 +77,7 @@ function privacy(langIn, email) {
 <h2>На твоєму телефоні</h2>
 <p>Ключ акаунта, нік, мова й налаштування зберігаються на телефоні, щоб ти лишався в акаунті.</p>
 <h2>Хто обробляє дані</h2>
-<p>Сервер і AI-моделі працюють на <b>Cloudflare</b> (Cloudflare, Inc.) як нашому обробнику. Твої тексти надсилаються цим моделям для відповідей, перекладу, модерації й суддівства. Cloudflare може обробляти дані поза ЄС; це покривають Стандартні договірні положення ЄС і EU–U.S. Data Privacy Framework.</p>
+<p>Сервер працює на <b>Cloudflare</b> (Cloudflare, Inc.). Твої тексти надсилаються AI-моделям для відповідей, перекладу, модерації й суддівства; ці моделі працюють у <b>Groq</b> (Groq, Inc., США), а як запасний варіант — у Cloudflare. Обидві компанії — наші обробники; Groq за замовчуванням не зберігає тексти. Дані можуть оброблятися поза ЄС (у США); це покривають Стандартні договірні положення ЄС і, де застосовно, EU–U.S. Data Privacy Framework.</p>
 <h2>Навіщо (правова підстава)</h2>
 <p>Щоб надати застосунок, яким ти користуєшся (ст. 6(1)(b) GDPR), і щоб дебати були безпечними завдяки модерації та скаргам (ст. 6(1)(f) GDPR, законний інтерес у безпечній спільноті).</p>
 <h2>Як довго</h2>
@@ -102,7 +102,7 @@ function privacy(langIn, email) {
 <h2>Auf deinem Gerät</h2>
 <p>Kontoschlüssel, Nickname, Sprache und Einstellungen werden auf deinem Handy gespeichert, damit du angemeldet bleibst.</p>
 <h2>Wer die Daten verarbeitet</h2>
-<p>Server und KI-Modelle laufen bei <b>Cloudflare</b> (Cloudflare, Inc.) als unserem Auftragsverarbeiter. Deine Texte werden an diese Modelle für Antworten, Übersetzung, Moderation und Bewertung gesendet. Cloudflare kann Daten außerhalb der EU verarbeiten; dies ist durch EU-Standardvertragsklauseln und das EU-U.S. Data Privacy Framework abgedeckt.</p>
+<p>Der Server läuft bei <b>Cloudflare</b> (Cloudflare, Inc.). Deine Texte werden für Antworten, Übersetzung, Moderation und Bewertung an KI-Modelle gesendet; diese laufen bei <b>Groq</b> (Groq, Inc., USA) und ersatzweise bei Cloudflare. Beide sind unsere Auftragsverarbeiter; Groq speichert die Texte standardmäßig nicht. Daten können außerhalb der EU (in den USA) verarbeitet werden; dies ist durch EU-Standardvertragsklauseln und, soweit anwendbar, das EU-U.S. Data Privacy Framework abgedeckt.</p>
 <h2>Rechtsgrundlage</h2>
 <p>Bereitstellung der App (Art. 6 Abs. 1 lit. b DSGVO) und Sicherheit durch Moderation und Meldungen (Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an einer sicheren Community).</p>
 <h2>Speicherdauer</h2>
